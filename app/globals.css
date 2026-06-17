@@ -1,0 +1,301 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+
+@custom-variant dark (&:is(.dark *));
+
+@media (prefers-color-scheme: dark) {
+  :root:not(.light) {
+    color-scheme: dark;
+  }
+}
+
+:root {
+  --background: #F8FAFC;
+  --foreground: #0F172A;
+  --card: #FFFFFF;
+  --card-foreground: #0F172A;
+  --popover: #FFFFFF;
+  --popover-foreground: #0F172A;
+  --primary: #0A2F6B;
+  --primary-foreground: #FFFFFF;
+  --secondary: #C0C0C0;
+  --secondary-foreground: #0F172A;
+  --muted: #E2E8F0;
+  --muted-foreground: #64748B;
+  --accent: #2563EB;
+  --accent-foreground: #FFFFFF;
+  --destructive: #EF4444;
+  --destructive-foreground: #FFFFFF;
+  --border: #E2E8F0;
+  --input: #E2E8F0;
+  --ring: #2563EB;
+  --chart-1: #0A2F6B;
+  --chart-2: #2563EB;
+  --chart-3: #CBD5F5;
+  --chart-4: #8A8F98;
+  --chart-5: #C0C0C0;
+  --radius: 0.75rem;
+  --sidebar: #FFFFFF;
+  --sidebar-foreground: #0F172A;
+  --sidebar-primary: #0A2F6B;
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: #2563EB;
+  --sidebar-accent-foreground: #FFFFFF;
+  --sidebar-border: #E2E8F0;
+  --sidebar-ring: #2563EB;
+}
+
+.dark {
+  --background: #0F172A;
+  --foreground: #CBD5F5;
+  --card: #1E293B;
+  --card-foreground: #CBD5F5;
+  --popover: #1E293B;
+  --popover-foreground: #CBD5F5;
+  --primary: #2563EB;
+  --primary-foreground: #0F172A;
+  --secondary: #8A8F98;
+  --secondary-foreground: #CBD5F5;
+  --muted: #334155;
+  --muted-foreground: #94A3B8;
+  --accent: #60A5FA;
+  --accent-foreground: #0F172A;
+  --destructive: #EF4444;
+  --destructive-foreground: #FFFFFF;
+  --border: #334155;
+  --input: #334155;
+  --ring: #60A5FA;
+  --chart-1: #2563EB;
+  --chart-2: #60A5FA;
+  --chart-3: #93C5FD;
+  --chart-4: #8A8F98;
+  --chart-5: #C0C0C0;
+  --sidebar: #1E293B;
+  --sidebar-foreground: #CBD5F5;
+  --sidebar-primary: #2563EB;
+  --sidebar-primary-foreground: #0F172A;
+  --sidebar-accent: #60A5FA;
+  --sidebar-accent-foreground: #0F172A;
+  --sidebar-border: #334155;
+  --sidebar-ring: #60A5FA;
+}
+
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 30px;
+  scrollbar-width: none;
+  /* Firefox */
+  -ms-overflow-style: none;
+  /* IE and Edge */
+}
+
+html::-webkit-scrollbar {
+  display: none;
+  /* Chrome, Safari, and Opera */
+}
+
+@theme inline {
+  --font-sans: var(--font-jakarta), ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-display: var(--font-display), var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'Geist Mono', 'Geist Mono Fallback';
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* Premium display typeface for all headings + opt-in helper */
+  h1, h2, h3, h4, .font-display {
+    font-family: var(--font-display);
+    letter-spacing: -0.02em;
+    font-feature-settings: 'ss01', 'cv01';
+  }
+}
+
+/* ----------------------------------------------------------------------------
+   Scroll-reveal engine (driven by components/ScrollReveal.tsx)
+---------------------------------------------------------------------------- */
+[data-reveal] {
+  opacity: 0;
+  transform: translateY(26px) scale(0.985);
+  transition:
+    opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+  transition-delay: var(--reveal-delay, 0ms);
+  will-change: opacity, transform;
+}
+
+[data-reveal].reveal-in {
+  opacity: 1;
+  transform: none;
+}
+
+/* Stagger helpers — drop on grid children for a cascading entrance */
+[data-reveal-d="1"] { --reveal-delay: 80ms; }
+[data-reveal-d="2"] { --reveal-delay: 160ms; }
+[data-reveal-d="3"] { --reveal-delay: 240ms; }
+[data-reveal-d="4"] { --reveal-delay: 320ms; }
+[data-reveal-d="5"] { --reveal-delay: 400ms; }
+
+/* ----------------------------------------------------------------------------
+   Theme animations
+---------------------------------------------------------------------------- */
+
+/* Flowing gradient sweep for hero / accent headline text */
+@keyframes gradientFlow {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+.animate-gradient-text {
+  background-size: 220% auto;
+  animation: gradientFlow 6s ease-in-out infinite;
+}
+
+/* Soft breathing glow for ambient background blobs */
+@keyframes auroraPulse {
+  0%, 100% { opacity: 0.5; transform: scale(1); }
+  50% { opacity: 0.9; transform: scale(1.12); }
+}
+.animate-aurora {
+  animation: auroraPulse 9s ease-in-out infinite;
+}
+
+/* Gentle vertical float */
+@keyframes floatSoft {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+.animate-float-soft {
+  animation: floatSoft 6s ease-in-out infinite;
+}
+
+/* Cinematic slow zoom for hero background image */
+@keyframes kenburns {
+  0% { transform: scale(1.05); }
+  100% { transform: scale(1.18); }
+}
+.animate-kenburns {
+  animation: kenburns 20s ease-out infinite alternate;
+}
+
+/* Expanding ripple rings (play button) */
+@keyframes ripple {
+  0% { transform: scale(1); opacity: 0.55; }
+  100% { transform: scale(2.3); opacity: 0; }
+}
+.animate-ripple {
+  animation: ripple 2.4s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+/* Soft entrance used by hero content on mount */
+@keyframes heroRise {
+  from { opacity: 0; transform: translateY(28px); }
+  to { opacity: 1; transform: none; }
+}
+.animate-hero-rise {
+  opacity: 0;
+  animation: heroRise 0.9s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Animated underline draw under the accent headline */
+@keyframes underlineGrow {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+.animate-underline {
+  transform: scaleX(0);
+  transform-origin: left;
+  animation: underlineGrow 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.95s forwards;
+}
+
+/* Shine sweep used on premium buttons (.btn-shine) */
+.btn-shine {
+  position: relative;
+  overflow: hidden;
+}
+.btn-shine::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -150%;
+  width: 60%;
+  height: 100%;
+  background: linear-gradient(
+    100deg,
+    transparent,
+    rgba(255, 255, 255, 0.28),
+    transparent
+  );
+  transform: skewX(-20deg);
+  transition: left 0.7s ease;
+}
+.btn-shine:hover::after {
+  left: 150%;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-reveal] {
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
+  }
+  .animate-gradient-text,
+  .animate-aurora,
+  .animate-float-soft,
+  .animate-kenburns,
+  .animate-ripple {
+    animation: none !important;
+  }
+  .animate-hero-rise {
+    opacity: 1;
+    animation: none !important;
+  }
+  .animate-underline {
+    transform: scaleX(1);
+    animation: none !important;
+  }
+}
