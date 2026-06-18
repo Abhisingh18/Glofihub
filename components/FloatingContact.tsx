@@ -20,32 +20,21 @@ function WhatsAppIcon({ size = 24 }: { size?: number }) {
 }
 
 export function FloatingContact() {
-  const [open, setOpen] = useState(false);
+  // Open by default so WhatsApp & Call are always visible; user can collapse.
+  const [open, setOpen] = useState(true);
   const [hint, setHint] = useState(false);
 
-  // Show a one-time attention hint after the page settles.
+  // On small screens, start collapsed so the buttons don't cover content.
   useEffect(() => {
-    const seen = sessionStorage.getItem('glofihub_contact_hint');
-    if (seen) return;
-    const show = setTimeout(() => setHint(true), 2500);
-    const hide = setTimeout(() => {
-      setHint(false);
-      sessionStorage.setItem('glofihub_contact_hint', '1');
-    }, 8500);
-    return () => {
-      clearTimeout(show);
-      clearTimeout(hide);
-    };
+    if (window.matchMedia('(max-width: 640px)').matches) setOpen(false);
   }, []);
 
   const openWhatsApp = () => {
     window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(WHATSAPP_TEXT)}`, '_blank');
-    setOpen(false);
   };
 
   const callNow = () => {
     window.location.href = `tel:${PHONE_TEL}`;
-    setOpen(false);
   };
 
   return (
