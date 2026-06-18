@@ -328,7 +328,7 @@ export function Hero() {
           onClick={() => setShowVideo(false)}
         >
           <div
-            className="relative w-full max-w-3xl aspect-video bg-neutral-950 rounded-2xl overflow-hidden shadow-2xl border border-white/10 animate-in zoom-in-95 duration-300"
+            className="relative h-[85dvh] aspect-[9/16] max-w-[calc(100vw-2rem)] bg-black rounded-2xl overflow-hidden shadow-2xl border border-white/10 animate-in zoom-in-95 duration-300"
             onClick={(e) => e.stopPropagation()}
           >
             <button
@@ -338,12 +338,13 @@ export function Hero() {
             >
               <X size={20} />
             </button>
-            <iframe
-              src="https://www.youtube.com/embed/fK0b6tYkH94?autoplay=1&rel=0"
-              title="GlofiHub Story"
-              className="absolute inset-0 w-full h-full"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              allowFullScreen
+            <video
+              src="/videos/our-story.mp4"
+              poster="/videos/our-story-poster.jpg"
+              controls
+              autoPlay
+              playsInline
+              className="absolute inset-0 w-full h-full object-cover"
             />
           </div>
         </div>

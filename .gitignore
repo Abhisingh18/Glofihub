@@ -33,3 +33,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# raw source media (large originals — exported versions live in /public)
+components/BG photo/
+*.MOV
