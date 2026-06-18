@@ -34,6 +34,7 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# raw source media (large originals — exported versions live in /public)
+# raw source media (originals/references — exported versions live in /public)
 components/BG photo/
+components/Services/
 *.MOV

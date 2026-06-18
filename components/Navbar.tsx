@@ -14,7 +14,7 @@ interface NavLink {
 
 const NAV_LINKS: NavLink[] = [
   { label: 'Home', href: '/#home', id: 'home' },
-  { label: 'Services', href: '/#services', id: 'services' },
+  { label: 'Services', href: '/services', id: null },
   { label: 'Portfolio', href: '/#portfolio', id: 'portfolio' },
   { label: 'Achievements', href: '/#achievements', id: 'achievements' },
   { label: 'About', href: '/about', id: null },
@@ -36,7 +36,7 @@ export function Navbar() {
 
   // A link is active when its home-section is in view, or its route is current.
   const isLinkActive = (link: NavLink) =>
-    link.id ? pathname === '/' && active === link.id : pathname.startsWith('/about');
+    link.id ? pathname === '/' && active === link.id : pathname.startsWith(link.href);
 
   const movePillTo = (el: HTMLElement | null) => {
     const container = listRef.current;
