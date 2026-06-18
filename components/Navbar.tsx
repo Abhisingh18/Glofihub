@@ -179,7 +179,7 @@ export function Navbar() {
 
           {/* Primary CTA (desktop) */}
           <button
-            onClick={() => window.dispatchEvent(new CustomEvent('openChatbot'))}
+            onClick={() => window.dispatchEvent(new CustomEvent('openGetStarted'))}
             className="btn-shine hidden md:inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-primary to-accent text-white px-5 py-2.5 text-[13px] font-semibold tracking-normal shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/40 hover:-translate-y-0.5 transition-all duration-300 cursor-pointer"
           >
             <Sparkles size={14} />
@@ -233,7 +233,7 @@ export function Navbar() {
           <button
             onClick={() => {
               setIsOpen(false);
-              window.dispatchEvent(new CustomEvent('openChatbot'));
+              window.dispatchEvent(new CustomEvent('openGetStarted'));
             }}
             className="btn-shine mt-2 w-full inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-primary to-accent text-white px-5 py-3.5 text-sm font-semibold tracking-normal shadow-lg shadow-primary/25"
           >

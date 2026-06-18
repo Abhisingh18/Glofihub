@@ -11,6 +11,7 @@ import { ParentReviews } from '@/components/ParentReviews';
 import { Contact } from '@/components/Contact';
 import { Footer } from '@/components/Footer';
 import { Chatbot } from '@/components/Chatbot';
+import { FloatingContact } from '@/components/FloatingContact';
 
 export default function Home() {
   return (
@@ -26,6 +27,7 @@ export default function Home() {
       <Contact />
       <Footer />
       <Chatbot />
+      <FloatingContact />
     </main>
   );
 }
