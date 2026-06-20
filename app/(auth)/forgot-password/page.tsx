@@ -18,6 +18,10 @@ export default function ForgotPasswordPage() {
 
   const onSubmit = async (values: ForgotInput) => {
     setNotice('');
+    if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
+      setNotice('This is not active yet — Supabase needs to be configured. See CRM_SETUP.md.');
+      return;
+    }
     const supabase = createClient();
     const { error } = await supabase.auth.resetPasswordForEmail(values.email, {
       redirectTo: `${window.location.origin}/login`,

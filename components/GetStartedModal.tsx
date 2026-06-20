@@ -30,12 +30,17 @@ export function GetStartedModal() {
 
   const chooseStudent = () => {
     setOpen(false);
+    router.push('/register');
+  };
+
+  const quickEnquiry = () => {
+    setOpen(false);
     window.dispatchEvent(new CustomEvent('openStudentForm'));
   };
 
   const chooseAdmin = () => {
     setOpen(false);
-    router.push('/admin');
+    router.push('/login');
   };
 
   return (
@@ -87,10 +92,10 @@ export function GetStartedModal() {
               </span>
               <h4 className="font-display text-lg font-bold text-foreground tracking-tight">Student</h4>
               <p className="text-xs text-foreground/60 font-medium mt-1 leading-relaxed">
-                Explore education, skills &amp; careers with our AI assistant.
+                Create your account for counselling, secure chat &amp; payments.
               </p>
               <span className="mt-4 inline-flex items-center gap-1.5 text-xs font-semibold text-primary">
-                Continue <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
+                Sign Up <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
               </span>
             </button>
 
@@ -102,13 +107,29 @@ export function GetStartedModal() {
               <span className="w-12 h-12 rounded-2xl bg-gradient-to-br from-emerald-500 to-green-600 flex items-center justify-center text-white shadow-lg shadow-emerald-500/25 mb-4 transition-transform duration-300 group-hover:scale-110 group-hover:-rotate-6">
                 <ShieldCheck size={24} />
               </span>
-              <h4 className="font-display text-lg font-bold text-foreground tracking-tight">Admin</h4>
+              <h4 className="font-display text-lg font-bold text-foreground tracking-tight">Admin / Staff</h4>
               <p className="text-xs text-foreground/60 font-medium mt-1 leading-relaxed">
-                Sign in to manage leads, content &amp; operations.
+                Counsellors &amp; admins sign in to manage students &amp; chat.
               </p>
               <span className="mt-4 inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-600">
-                Admin Login <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
+                Sign In <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
               </span>
+            </button>
+          </div>
+
+          {/* Footer links */}
+          <div className="mt-6 flex flex-col items-center gap-2 text-center">
+            <p className="text-xs text-foreground/55 font-medium">
+              Already have an account?{' '}
+              <button onClick={chooseAdmin} className="font-semibold text-primary hover:underline cursor-pointer">
+                Sign in
+              </button>
+            </p>
+            <button
+              onClick={quickEnquiry}
+              className="text-xs font-medium text-foreground/45 hover:text-foreground transition-colors cursor-pointer"
+            >
+              Or send a quick enquiry without an account →
             </button>
           </div>
         </div>

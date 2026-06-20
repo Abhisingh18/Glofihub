@@ -20,6 +20,10 @@ export default function RegisterPage() {
 
   const onSubmit = async (values: RegisterInput) => {
     setNotice('');
+    if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
+      setNotice('Sign-up is not active yet — Supabase needs to be configured. See CRM_SETUP.md.');
+      return;
+    }
     const supabase = createClient();
     const { data, error } = await supabase.auth.signUp({
       email: values.email,

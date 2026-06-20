@@ -15,6 +15,11 @@ const AUTH_PAGES = ['/login', '/register', '/forgot-password'];
 export async function updateSession(request: NextRequest) {
   let response = NextResponse.next({ request });
 
+  // Supabase not configured yet — let pages render (CRM stays inactive until keys are set).
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+    return response;
+  }
+
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
