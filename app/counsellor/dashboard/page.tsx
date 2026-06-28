@@ -1,5 +1,5 @@
 import { getCurrentUser } from '@/lib/auth';
-import { createClient } from '@/lib/supabase/server';
+import { sql, one } from '@/lib/pg';
 import { getStudents } from '@/lib/queries';
 import { PageHeader, StatCard, Money, StatusBadge, EmptyState } from '@/components/crm/widgets';
 import { Card } from '@/components/crm/ui';
@@ -10,18 +10,21 @@ const ACTIVE = ['contacted', 'interested', 'follow_up', 'active'];
 
 export default async function CounsellorDashboard() {
   const me = (await getCurrentUser())!;
-  const supabase = await createClient();
-  const students = await getStudents(); // RLS → only assigned
+  const students = await getStudents(); // scoped → only assigned
 
-  const { count: msgCount } = await supabase
-    .from('messages').select('id', { count: 'exact', head: true }).eq('sender_id', me.id);
+  const msgRow = await one<{ count: string }>(
+    `select count(*)::int as count from messages where sender_id = $1`, [me.id]
+  );
+  const msgCount = Number(msgRow?.count ?? 0);
 
   const studentIds = students.map((s) => s.id);
   let revenue = 0;
   if (studentIds.length) {
-    const { data: pays } = await supabase
-      .from('payments').select('amount, payment_status').in('student_id', studentIds);
-    revenue = (pays ?? []).filter((p) => p.payment_status === 'paid').reduce((n, p) => n + Number(p.amount), 0);
+    const pays = await sql<{ amount: string }>(
+      `select amount from payments where payment_status = 'paid' and student_id = any($1::uuid[])`,
+      [studentIds]
+    );
+    revenue = pays.reduce((n, p) => n + Number(p.amount), 0);
   }
   const active = students.filter((s) => ACTIVE.includes(s.status)).length;
 

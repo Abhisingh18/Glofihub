@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { Send, ShieldCheck } from 'lucide-react';
-import { createClient } from '@/lib/supabase/client';
 import { sendMessage } from '@/lib/actions/chat';
 import type { Message } from '@/lib/database.types';
 import { cn } from '@/lib/utils';
@@ -18,58 +17,28 @@ export function ChatBox({ conversationId, me, other, initial }: Props) {
   const [messages, setMessages] = useState<Message[]>(initial);
   const [text, setText] = useState('');
   const [sending, setSending] = useState(false);
-  const [otherTyping, setOtherTyping] = useState(false);
-  const supabase = useRef(createClient()).current;
-  const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const endRef = useRef<HTMLDivElement>(null);
-  const typingTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const scrollDown = () => endRef.current?.scrollIntoView({ behavior: 'smooth' });
 
-  const markRead = async () => {
-    await supabase.from('messages').update({ read_status: true })
-      .eq('conversation_id', conversationId).eq('receiver_id', me.id).eq('read_status', false);
+  const load = async () => {
+    try {
+      const res = await fetch(`/api/chat/messages?conversationId=${conversationId}`, { cache: 'no-store' });
+      const data = await res.json();
+      if (Array.isArray(data.items)) setMessages(data.items);
+    } catch {
+      /* ignore */
+    }
   };
 
   useEffect(() => {
     scrollDown();
-    markRead();
-
-    const channel = supabase
-      .channel(`chat:${conversationId}`)
-      .on('postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'messages', filter: `conversation_id=eq.${conversationId}` },
-        (payload) => {
-          const m = payload.new as Message;
-          setMessages((prev) => (prev.some((x) => x.id === m.id) ? prev : [...prev, m]));
-          if (m.receiver_id === me.id) markRead();
-        })
-      .on('postgres_changes',
-        { event: 'UPDATE', schema: 'public', table: 'messages', filter: `conversation_id=eq.${conversationId}` },
-        (payload) => {
-          const m = payload.new as Message;
-          setMessages((prev) => prev.map((x) => (x.id === m.id ? m : x)));
-        })
-      .on('broadcast', { event: 'typing' }, (p) => {
-        if (p.payload?.userId === other.id) {
-          setOtherTyping(true);
-          if (typingTimeout.current) clearTimeout(typingTimeout.current);
-          typingTimeout.current = setTimeout(() => setOtherTyping(false), 2500);
-        }
-      })
-      .subscribe();
-    channelRef.current = channel;
-
-    return () => { supabase.removeChannel(channel); };
+    const t = setInterval(load, 3000); // poll every 3s
+    return () => clearInterval(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [conversationId]);
 
-  useEffect(() => { scrollDown(); }, [messages, otherTyping]);
-
-  const onType = (v: string) => {
-    setText(v);
-    channelRef.current?.send({ type: 'broadcast', event: 'typing', payload: { userId: me.id } });
-  };
+  useEffect(() => { scrollDown(); }, [messages]);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -77,8 +46,15 @@ export function ChatBox({ conversationId, me, other, initial }: Props) {
     if (!msg || sending) return;
     setSending(true);
     setText('');
+    // Optimistic append
+    const optimistic: Message = {
+      id: `tmp-${Date.now()}`, conversation_id: conversationId, sender_id: me.id,
+      receiver_id: other.id, message: msg, read_status: false, created_at: new Date().toISOString(),
+    };
+    setMessages((prev) => [...prev, optimistic]);
     const res = await sendMessage({ conversation_id: conversationId, receiver_id: other.id, message: msg });
-    if (!res.ok) setText(msg); // restore on failure
+    if (!res.ok) { setText(msg); setMessages((prev) => prev.filter((m) => m.id !== optimistic.id)); }
+    else load();
     setSending(false);
   };
 
@@ -87,18 +63,16 @@ export function ChatBox({ conversationId, me, other, initial }: Props) {
 
   return (
     <div className="flex flex-col h-[calc(100dvh-9rem)] rounded-2xl bg-card border border-foreground/10 shadow-sm overflow-hidden">
-      {/* Header */}
       <div className="flex items-center gap-3 px-4 py-3 border-b border-foreground/10 bg-muted/30">
         <span className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-blue-600 text-white flex items-center justify-center font-display font-bold">
           {other.name[0]?.toUpperCase() ?? '?'}
         </span>
         <div>
           <p className="font-display font-bold text-foreground leading-tight">{other.name}</p>
-          <p className="text-[11px] text-emerald-600 font-medium">{otherTyping ? 'typing…' : 'Secure in-app chat'}</p>
+          <p className="text-[11px] text-emerald-600 font-medium">Secure in-app chat</p>
         </div>
       </div>
 
-      {/* Messages */}
       <div className="flex-1 overflow-y-auto p-4 space-y-3">
         <div className="flex justify-center">
           <span className="inline-flex items-center gap-1.5 text-[10px] font-medium text-foreground/40 bg-muted px-2.5 py-1 rounded-full">
@@ -121,23 +95,13 @@ export function ChatBox({ conversationId, me, other, initial }: Props) {
         {lastMine && (
           <p className="text-right text-[10px] text-foreground/40 pr-1">{lastMine.read_status ? 'Seen' : 'Delivered'}</p>
         )}
-        {otherTyping && (
-          <div className="flex justify-start">
-            <div className="bg-muted rounded-2xl rounded-bl-sm px-3.5 py-2.5 flex gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-foreground/40 animate-bounce" />
-              <span className="w-1.5 h-1.5 rounded-full bg-foreground/40 animate-bounce" style={{ animationDelay: '0.15s' }} />
-              <span className="w-1.5 h-1.5 rounded-full bg-foreground/40 animate-bounce" style={{ animationDelay: '0.3s' }} />
-            </div>
-          </div>
-        )}
         <div ref={endRef} />
       </div>
 
-      {/* Composer */}
       <form onSubmit={submit} className="p-3 border-t border-foreground/10 flex items-center gap-2">
         <input
           value={text}
-          onChange={(e) => onType(e.target.value)}
+          onChange={(e) => setText(e.target.value)}
           placeholder="Type a message…"
           className="flex-1 px-4 py-2.5 rounded-full bg-muted/50 border border-foreground/10 text-sm focus:bg-background focus:border-primary focus:outline-none transition-all"
         />

@@ -1,17 +1,20 @@
-import { createClient } from '@/lib/supabase/server';
+import { sql } from '@/lib/pg';
 import { PageHeader, StatCard, Money, EmptyState } from '@/components/crm/widgets';
 import { Card } from '@/components/crm/ui';
-import { PAYMENT_TYPE_META } from '@/lib/database.types';
+import { PAYMENT_TYPE_META, type PaymentType } from '@/lib/database.types';
 import { IndianRupee, CalendarClock, Clock, CreditCard } from 'lucide-react';
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
 export default async function AdminPayments() {
-  const supabase = await createClient();
-  const { data } = await supabase
-    .from('payments')
-    .select(`*, student:students!payments_student_id_fkey ( user:users!students_user_id_fkey ( full_name, email ) )`)
-    .order('created_at', { ascending: false });
-  const payments = (data as any[]) ?? [];
+  const payments = await sql<{
+    id: string; amount: string; payment_status: string; payment_type: PaymentType;
+    razorpay_payment_id: string | null; created_at: string; full_name: string | null;
+  }>(
+    `select p.id, p.amount, p.payment_status, p.payment_type, p.razorpay_payment_id, p.created_at, u.full_name
+     from payments p
+     join students s on s.id = p.student_id
+     join users u on u.id = s.user_id
+     order by p.created_at desc`
+  );
 
   const paid = payments.filter((p) => p.payment_status === 'paid');
   const now = new Date();
@@ -36,7 +39,7 @@ export default async function AdminPayments() {
       </div>
 
       {payments.length === 0 ? (
-        <EmptyState icon={CreditCard} title="No payments yet" hint="Transactions will appear here." />
+        <EmptyState icon={CreditCard} title="No payments yet" hint="Transactions will appear here once payments are enabled." />
       ) : (
         <Card className="overflow-hidden">
           <div className="overflow-x-auto">
@@ -53,10 +56,8 @@ export default async function AdminPayments() {
               <tbody className="divide-y divide-foreground/5">
                 {payments.map((p) => (
                   <tr key={p.id} className="hover:bg-muted/40 transition-colors">
-                    <td className="px-4 py-3">
-                      <span className="font-semibold text-foreground">{p.student?.user?.full_name ?? '—'}</span>
-                    </td>
-                    <td className="px-4 py-3 text-foreground/70">{PAYMENT_TYPE_META[p.payment_type as keyof typeof PAYMENT_TYPE_META].label}</td>
+                    <td className="px-4 py-3 font-semibold text-foreground">{p.full_name ?? '—'}</td>
+                    <td className="px-4 py-3 text-foreground/70">{PAYMENT_TYPE_META[p.payment_type].label}</td>
                     <td className="px-4 py-3 font-bold text-foreground"><Money amount={Number(p.amount)} /></td>
                     <td className="px-4 py-3">
                       <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${p.payment_status === 'paid' ? 'bg-emerald-500/15 text-emerald-600' : p.payment_status === 'failed' ? 'bg-rose-500/15 text-rose-600' : 'bg-amber-500/15 text-amber-600'}`}>{p.payment_status}</span>

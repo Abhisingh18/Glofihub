@@ -1,89 +1,80 @@
-# GlofiHub CRM — Setup Guide
+# GlofiHub CRM — Setup Guide (PostgreSQL)
 
-The authenticated CRM (admin / counsellor / student) is built on top of the
-landing page. Follow these steps to make it live.
+The CRM (admin / counsellor / student) runs on **plain PostgreSQL** with custom
+auth — no Supabase. It works locally and on Vercel.
 
-## 1. Environment variables
+## 1. Get a PostgreSQL database (free)
 
-Copy `.env.local.example` → `.env.local` and fill in:
+Easiest: **Neon** (https://neon.tech) — free, serverless, perfect for Vercel.
+1. Sign up → New Project.
+2. Copy the **connection string** (looks like
+   `postgres://user:pass@ep-xxx.aws.neon.tech/neondb?sslmode=require`).
+
+(Any Postgres works too — Railway, Render, Supabase's Postgres, or local.)
+
+## 2. Environment variables
+
+Copy `.env.local.example` → `.env.local` (locally) or add these in
+**Vercel → Settings → Environment Variables**:
 
 ```
+DATABASE_URL=postgres://...            # from step 1
+JWT_SECRET=<long-random-string>        # e.g. openssl rand -base64 32
 NEXT_PUBLIC_SITE_URL=https://your-domain.com
-NEXT_PUBLIC_SUPABASE_URL=...           # Supabase → Settings → API
-NEXT_PUBLIC_SUPABASE_ANON_KEY=...      # Supabase → Settings → API (anon public)
-SUPABASE_SERVICE_ROLE_KEY=...          # Supabase → Settings → API (service_role — SECRET)
-RAZORPAY_KEY_ID=...                    # Razorpay → Settings → API Keys
-RAZORPAY_KEY_SECRET=...                # Razorpay → Settings → API Keys (SECRET)
+ADMIN_SETUP_SECRET=<any-secret>        # used once to bootstrap
+SETUP_ADMIN_EMAIL=admin@glofihub.com
+SETUP_ADMIN_PASSWORD=<your-admin-password>
 ```
 
-On Vercel, add the same keys in **Project → Settings → Environment Variables**.
+## 3. Create tables + first admin — one click
 
-## 2. Database
+Start the app (`npm run dev`, or after deploying), then open **once**:
 
-In Supabase → **SQL Editor**, run in order:
-
-1. `supabase/schema.sql`  — tables, enums, triggers, realtime.
-2. `supabase/rls.sql`     — row-level security policies.
-
-This also creates a trigger so every new auth user gets a `users` row (and a
-`students`/`counsellors` row based on their role).
-
-## 3. Create the first admin
-
-Supabase → **Authentication → Users → Add user**:
-- Email + password of your choice.
-- Auto-confirm the user.
-
-Then promote them to admin (SQL Editor):
-```sql
-update public.users set role = 'super_admin'
-where email = 'admin@glofihub.com';
 ```
+http://localhost:3000/api/setup?secret=YOUR_ADMIN_SETUP_SECRET
+```
+(or `https://your-domain.com/api/setup?secret=...` on production)
 
-Now `/login` with those credentials → lands on `/admin/dashboard`.
+This will:
+- create all CRM tables (idempotent — safe to re-run), and
+- create your first admin from `SETUP_ADMIN_EMAIL` / `SETUP_ADMIN_PASSWORD`.
 
-## 4. Roles & how it works
+You should see `{ "ok": true, "schema": "ready", "admin": "Admin created: ..." }`.
 
-| Role | How created | Lands on |
+> The raw SQL also lives in `lib/schema.ts` if you prefer to run it manually.
+
+## 4. Log in
+
+- Go to `/login` → **Admin** tab → use `SETUP_ADMIN_EMAIL` + `SETUP_ADMIN_PASSWORD`.
+- That's your admin credential. 🎉
+
+## 5. Roles
+
+| Role | Created how | Lands on |
 | --- | --- | --- |
-| **Student** | Self sign-up at `/register` | `/student/dashboard` |
-| **Counsellor** | Admin → Counsellors → Add Counsellor | `/counsellor/dashboard` |
-| **Super Admin** | Created in Supabase + SQL above | `/admin/dashboard` |
+| **Student (User)** | Self sign-up at `/register` | `/student/dashboard` |
+| **Counsellor (Staff)** | Admin → Counsellors → Add Counsellor | `/counsellor/dashboard` |
+| **Super Admin** | `/api/setup` (step 3) | `/admin/dashboard` |
 
-RBAC is enforced in 3 layers: `middleware.ts` (routes), server actions/route
-handlers (actions), and Postgres **RLS** (data).
+Admin has access to everything.
 
-## 5. Realtime chat
+## How it works (no Supabase)
 
-Chat uses Supabase Realtime (already enabled for `messages` & `notifications`
-in `schema.sql`). No phone numbers are ever exposed between students and
-counsellors — all communication is in-app.
-
-## 6. Razorpay payments
-
-- Use **test keys** first (Razorpay test mode).
-- Order is created server-side (`/api/payments/order`), checkout opens on the
-  client, and the signature is verified server-side (`/api/payments/verify`)
-  before the payment is marked **paid** and the student status updated.
-- Until Razorpay keys are set, the Pay button returns a friendly "not
-  configured" message — the rest of the CRM works fine.
-
-## 7. Auth email (optional)
-
-Supabase → Authentication → Providers → Email: turn **off** "Confirm email" for
-instant student sign-in during testing, or keep it on for production.
+- **DB:** `pg` (node-postgres) via `DATABASE_URL` (`lib/pg.ts`).
+- **Auth:** email + bcrypt-hashed password, signed **JWT in an httpOnly cookie**
+  (`lib/session.ts`, `lib/actions/auth.ts`). Route protection in `middleware.ts`.
+- **Security:** role checks in middleware + every server action/query.
+- **Chat & notifications:** in-app, via polling (no phone numbers shared).
+- **Payments:** Razorpay not enabled yet (UI shows "coming soon").
 
 ## Folder map
 
 ```
-app/(auth)/            login, register, forgot-password
-app/admin/             admin dashboard, students, counsellors, assignments,
-                       payments, analytics, settings
-app/counsellor/        dashboard, students, messages
-app/student/           dashboard, chat, payments, profile
-app/api/payments/      order, verify  (Razorpay)
-components/crm/         shared CRM UI (shell, chat, charts, tables, forms)
-lib/                    auth, queries, validations, actions/, supabase/
-supabase/              schema.sql, rls.sql
-middleware.ts          route-level RBAC
+app/(auth)/      login, register, forgot-password
+app/admin/       dashboard, students, counsellors, assignments, payments, analytics, settings
+app/counsellor/  dashboard, students, messages
+app/student/     dashboard, chat, payments, profile
+app/api/         setup, chat/messages, notifications
+lib/             pg, schema, session, auth, queries, validations, actions/
+middleware.ts    route-level RBAC (JWT)
 ```

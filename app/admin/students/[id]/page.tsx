@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation';
 import { getStudent, getStudentPayments, getStudentNotes, getCounsellors } from '@/lib/queries';
-import { createClient } from '@/lib/supabase/server';
+import { sql } from '@/lib/pg';
 import { PageHeader, StatusBadge, Money } from '@/components/crm/widgets';
 import { Card } from '@/components/crm/ui';
 import { StatusChanger } from '@/components/crm/StatusChanger';
@@ -20,11 +20,10 @@ export default async function AdminStudentDetail({ params }: { params: Promise<{
     getCounsellors(),
   ]);
 
-  const supabase = await createClient();
-  const { data: activity } = await supabase
-    .from('activity_logs').select('*').eq('user_id', student.user_id)
-    .order('created_at', { ascending: false }).limit(15);
-  const logs = (activity as ActivityLog[]) ?? [];
+  const logs = await sql<ActivityLog>(
+    `select * from activity_logs where user_id = $1 order by created_at desc limit 15`,
+    [student.user_id]
+  );
 
   const fmt = (ts: string) => new Date(ts).toLocaleString([], { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 

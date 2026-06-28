@@ -1,8 +1,6 @@
-// Student enquiries store.
-// Uses Supabase (cloud, cross-device) when configured; otherwise falls back
-// to localStorage (per-browser) so the app keeps working without setup.
-
-import { supabase, isSupabaseConfigured } from './supabase';
+// Public "quick enquiry" store (no account). Saved per-browser in localStorage.
+// The full CRM (students/counsellors) lives in PostgreSQL — this is only the
+// lightweight top-of-funnel lead form on the marketing site.
 
 export interface Lead {
   id: string;
@@ -21,7 +19,6 @@ export type NewLead = Omit<Lead, 'id' | 'createdAt'>;
 
 const KEY = 'glofihub_leads';
 
-/* ----------------------------- localStorage ----------------------------- */
 function localGet(): Lead[] {
   if (typeof window === 'undefined') return [];
   try {
@@ -33,36 +30,11 @@ function localGet(): Lead[] {
   }
 }
 
-/* ------------------------------- public API ----------------------------- */
 export async function getLeads(): Promise<Lead[]> {
-  if (isSupabaseConfigured && supabase) {
-    const { data, error } = await supabase
-      .from('leads')
-      .select('*')
-      .order('created_at', { ascending: false });
-    if (error) throw error;
-    return (data ?? []).map((r): Lead => ({
-      id: String(r.id),
-      name: r.name ?? '',
-      email: r.email ?? '',
-      phone: r.phone ?? '',
-      city: r.city ?? '',
-      age: r.age ?? '',
-      service: r.service ?? '',
-      preference: r.preference ?? '',
-      message: r.message ?? '',
-      createdAt: r.created_at ? new Date(r.created_at).getTime() : Date.now(),
-    }));
-  }
   return localGet();
 }
 
 export async function saveLead(data: NewLead): Promise<void> {
-  if (isSupabaseConfigured && supabase) {
-    const { error } = await supabase.from('leads').insert([data]);
-    if (error) throw error;
-    return;
-  }
   if (typeof window === 'undefined') return;
   const lead: Lead = {
     ...data,
@@ -75,21 +47,11 @@ export async function saveLead(data: NewLead): Promise<void> {
 }
 
 export async function deleteLead(id: string): Promise<void> {
-  if (isSupabaseConfigured && supabase) {
-    const { error } = await supabase.from('leads').delete().eq('id', id);
-    if (error) throw error;
-    return;
-  }
   if (typeof window === 'undefined') return;
   localStorage.setItem(KEY, JSON.stringify(localGet().filter((l) => l.id !== id)));
 }
 
 export async function clearLeads(): Promise<void> {
-  if (isSupabaseConfigured && supabase) {
-    const { error } = await supabase.from('leads').delete().neq('id', '');
-    if (error) throw error;
-    return;
-  }
   if (typeof window === 'undefined') return;
   localStorage.removeItem(KEY);
 }

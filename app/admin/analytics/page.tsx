@@ -1,18 +1,15 @@
-import { createClient } from '@/lib/supabase/server';
+import { sql } from '@/lib/pg';
 import { PageHeader, EmptyState } from '@/components/crm/widgets';
 import { Card } from '@/components/crm/ui';
 import { Activity } from 'lucide-react';
-import type { ActivityLog } from '@/lib/database.types';
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
 export default async function AdminAnalytics() {
-  const supabase = await createClient();
-  const { data } = await supabase
-    .from('activity_logs')
-    .select(`*, user:users!activity_logs_user_id_fkey ( full_name )`)
-    .order('created_at', { ascending: false })
-    .limit(100);
-  const logs = (data as (ActivityLog & { user?: { full_name: string } })[]) ?? [];
+  const logs = await sql<{ id: string; activity: string; created_at: string; full_name: string | null }>(
+    `select a.id, a.activity, a.created_at, u.full_name
+     from activity_logs a
+     left join users u on u.id = a.user_id
+     order by a.created_at desc limit 100`
+  );
 
   const fmt = (ts: string) => new Date(ts).toLocaleString([], { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 
@@ -30,7 +27,7 @@ export default async function AdminAnalytics() {
                 <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-primary shrink-0" />
                 <div>
                   <p className="text-foreground/80">
-                    <span className="font-semibold text-foreground">{l.user?.full_name ?? 'System'}</span> — {l.activity}
+                    <span className="font-semibold text-foreground">{l.full_name ?? 'System'}</span> — {l.activity}
                   </p>
                   <p className="text-[10px] text-foreground/40">{fmt(l.created_at)}</p>
                 </div>

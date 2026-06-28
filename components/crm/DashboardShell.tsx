@@ -4,7 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { Menu, X, LogOut, GraduationCap, type LucideIcon } from 'lucide-react';
-import { createClient } from '@/lib/supabase/client';
+import { signOut } from '@/lib/actions/auth';
 import { cn } from '@/lib/utils';
 import type { UserRole } from '@/lib/database.types';
 import { NotificationBell } from '@/components/crm/NotificationBell';
@@ -33,7 +33,7 @@ export function DashboardShell({ user, nav, children }: Props) {
   const [open, setOpen] = useState(false);
 
   const logout = async () => {
-    await createClient().auth.signOut();
+    await signOut();
     router.push('/login');
     router.refresh();
   };

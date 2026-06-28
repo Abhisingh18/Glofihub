@@ -2,38 +2,29 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { Bell } from 'lucide-react';
-import { createClient } from '@/lib/supabase/client';
 import type { Notification } from '@/lib/database.types';
 
 export function NotificationBell({ userId }: { userId: string }) {
   const [items, setItems] = useState<Notification[]>([]);
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
-  const supabase = useRef(createClient()).current;
 
   const unread = items.filter((n) => !n.read).length;
 
   const load = async () => {
-    const { data } = await supabase
-      .from('notifications')
-      .select('*')
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false })
-      .limit(20);
-    setItems((data as Notification[]) ?? []);
+    try {
+      const res = await fetch('/api/notifications', { cache: 'no-store' });
+      const data = await res.json();
+      setItems(data.items ?? []);
+    } catch {
+      /* ignore */
+    }
   };
 
   useEffect(() => {
     load();
-    const channel = supabase
-      .channel(`notifications:${userId}`)
-      .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'notifications', filter: `user_id=eq.${userId}` },
-        (payload) => setItems((prev) => [payload.new as Notification, ...prev])
-      )
-      .subscribe();
-    return () => { supabase.removeChannel(channel); };
+    const t = setInterval(load, 15000); // poll every 15s
+    return () => clearInterval(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId]);
 
@@ -49,7 +40,7 @@ export function NotificationBell({ userId }: { userId: string }) {
     const next = !open;
     setOpen(next);
     if (next && unread > 0) {
-      await supabase.from('notifications').update({ read: true }).eq('user_id', userId).eq('read', false);
+      try { await fetch('/api/notifications', { method: 'POST' }); } catch {}
       setItems((prev) => prev.map((n) => ({ ...n, read: true })));
     }
   };

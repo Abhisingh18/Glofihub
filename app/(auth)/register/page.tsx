@@ -5,67 +5,25 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { User, Mail, Phone, Lock, MapPin, Globe, GraduationCap, UserPlus, CheckCircle2 } from 'lucide-react';
-import { createClient } from '@/lib/supabase/client';
+import { User, Mail, Phone, Lock, MapPin, Globe, GraduationCap, UserPlus } from 'lucide-react';
+import { signUp } from '@/lib/actions/auth';
 import { registerSchema, type RegisterInput } from '@/lib/validations';
 import { Button, FieldError, Input, Label, Select } from '@/components/crm/ui';
 
 export default function RegisterPage() {
   const router = useRouter();
   const [notice, setNotice] = useState('');
-  const [done, setDone] = useState(false);
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<RegisterInput>({
     resolver: zodResolver(registerSchema),
   });
 
   const onSubmit = async (values: RegisterInput) => {
     setNotice('');
-    if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
-      setNotice('Sign-up is not active yet — Supabase needs to be configured. See CRM_SETUP.md.');
-      return;
-    }
-    const supabase = createClient();
-    const { data, error } = await supabase.auth.signUp({
-      email: values.email,
-      password: values.password,
-      options: {
-        data: {
-          full_name: values.full_name,
-          phone: values.phone,
-          role: 'student',
-          city: values.city,
-          country_interest: values.country_interest,
-          education_level: values.education_level,
-        },
-      },
-    });
-    if (error) {
-      setNotice(error.message);
-      return;
-    }
-    // If email confirmation is disabled, a session exists → go straight in.
-    if (data.session) {
-      router.push('/student/dashboard');
-      router.refresh();
-    } else {
-      setDone(true);
-    }
+    const res = await signUp(values);
+    if (!res.ok) { setNotice(res.error || 'Could not create account.'); return; }
+    router.push('/student/dashboard');
+    router.refresh();
   };
-
-  if (done) {
-    return (
-      <div className="text-center">
-        <span className="w-16 h-16 rounded-full bg-emerald-500/15 flex items-center justify-center mx-auto mb-4">
-          <CheckCircle2 size={34} className="text-emerald-600" />
-        </span>
-        <h1 className="font-display text-xl font-extrabold text-foreground">Check your email</h1>
-        <p className="text-sm text-foreground/60 font-medium mt-2">
-          We&apos;ve sent a confirmation link. Verify your email, then sign in.
-        </p>
-        <Link href="/login"><Button className="mt-6 w-full">Go to Login</Button></Link>
-      </div>
-    );
-  }
 
   return (
     <>

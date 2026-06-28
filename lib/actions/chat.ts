@@ -1,48 +1,45 @@
 'use server';
 
-import { createClient } from '@/lib/supabase/server';
-import { createAdminClient } from '@/lib/supabase/admin';
+import { sql, one } from '@/lib/pg';
 import { requireUser } from '@/lib/auth';
 import { notify } from '@/lib/activity';
 import { messageSchema } from '@/lib/validations';
 
-/**
- * Find or create the single conversation between two users.
- * Pair is normalised (sorted) so (a,b) and (b,a) map to one row.
- */
+/** Find or create the single conversation between two users (normalised pair). */
 export async function getOrCreateConversation(userId1: string, userId2: string): Promise<string | null> {
   const [user_a, user_b] = [userId1, userId2].sort();
-  const db = createAdminClient();
-  const { data: existing } = await db
-    .from('conversations')
-    .select('id')
-    .eq('user_a', user_a)
-    .eq('user_b', user_b)
-    .maybeSingle();
+  const existing = await one<{ id: string }>(
+    `select id from conversations where user_a = $1 and user_b = $2`,
+    [user_a, user_b]
+  );
   if (existing) return existing.id;
-  const { data, error } = await db
-    .from('conversations')
-    .insert({ user_a, user_b })
-    .select('id')
-    .single();
-  if (error) return null;
-  return data.id;
+  const created = await one<{ id: string }>(
+    `insert into conversations (user_a, user_b) values ($1, $2)
+     on conflict (user_a, user_b) do update set user_a = excluded.user_a
+     returning id`,
+    [user_a, user_b]
+  );
+  return created?.id ?? null;
 }
 
 export async function sendMessage(input: unknown): Promise<{ ok: boolean; error?: string }> {
   const me = await requireUser();
   const parsed = messageSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: 'Invalid message' };
+  const { conversation_id, receiver_id, message } = parsed.data;
 
-  const supabase = await createClient();
-  const { error } = await supabase.from('messages').insert({
-    conversation_id: parsed.data.conversation_id,
-    sender_id: me.id,
-    receiver_id: parsed.data.receiver_id,
-    message: parsed.data.message,
-  });
-  if (error) return { ok: false, error: error.message };
+  // Ensure the sender belongs to this conversation.
+  const conv = await one<{ id: string }>(
+    `select id from conversations where id = $1 and ($2 = user_a or $2 = user_b)`,
+    [conversation_id, me.id]
+  );
+  if (!conv) return { ok: false, error: 'Not allowed' };
 
-  await notify(parsed.data.receiver_id, 'message', `New message from ${me.full_name}`, parsed.data.message.slice(0, 80));
+  await sql(
+    `insert into messages (conversation_id, sender_id, receiver_id, message)
+     values ($1, $2, $3, $4)`,
+    [conversation_id, me.id, receiver_id, message]
+  );
+  await notify(receiver_id, 'message', `New message from ${me.full_name}`, message.slice(0, 80));
   return { ok: true };
 }

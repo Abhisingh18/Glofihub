@@ -2,7 +2,7 @@ import { requireRole } from '@/lib/auth';
 import { PageHeader } from '@/components/crm/widgets';
 import { Card } from '@/components/crm/ui';
 import { ShieldCheck, Mail, Database } from 'lucide-react';
-import { isSupabaseConfigured } from '@/lib/supabase';
+import { isDbConfigured } from '@/lib/pg';
 
 export default async function AdminSettings() {
   const user = await requireRole('super_admin');
@@ -22,7 +22,7 @@ export default async function AdminSettings() {
           <div className="space-y-3 text-sm">
             <p className="flex items-center gap-2 text-foreground/70">
               <Database size={15} className="text-foreground/40" />
-              Supabase: {isSupabaseConfigured ? <span className="text-emerald-600 font-semibold">Connected</span> : <span className="text-rose-600 font-semibold">Not configured</span>}
+              Database: {isDbConfigured ? <span className="text-emerald-600 font-semibold">Connected</span> : <span className="text-rose-600 font-semibold">Not configured</span>}
             </p>
             <p className="text-foreground/50 text-xs">Manage counsellors, students, payments and assignments from the sidebar.</p>
           </div>

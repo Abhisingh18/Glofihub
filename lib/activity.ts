@@ -1,30 +1,29 @@
-// Server-only module — only import from Server Components / Route Handlers.
-import { createAdminClient } from '@/lib/supabase/admin';
+// Server-only — only import from Server Components / Actions / Route Handlers.
+import { sql } from '@/lib/pg';
 
-/** Record an audit-trail entry. Uses service role (bypasses RLS). */
+/** Record an audit-trail entry. */
 export async function logActivity(
   userId: string | null,
   activity: string,
   meta?: Record<string, unknown>
 ) {
   try {
-    const admin = createAdminClient();
-    await admin.from('activity_logs').insert({ user_id: userId, activity, meta: meta ?? null });
+    await sql(
+      `insert into activity_logs (user_id, activity, meta) values ($1, $2, $3)`,
+      [userId, activity, meta ? JSON.stringify(meta) : null]
+    );
   } catch {
     /* logging must never break the main flow */
   }
 }
 
 /** Push a notification to a user. */
-export async function notify(
-  userId: string,
-  type: string,
-  title: string,
-  body?: string
-) {
+export async function notify(userId: string, type: string, title: string, body?: string) {
   try {
-    const admin = createAdminClient();
-    await admin.from('notifications').insert({ user_id: userId, type, title, body: body ?? null });
+    await sql(
+      `insert into notifications (user_id, type, title, body) values ($1, $2, $3, $4)`,
+      [userId, type, title, body ?? null]
+    );
   } catch {
     /* non-blocking */
   }

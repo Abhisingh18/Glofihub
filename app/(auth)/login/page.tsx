@@ -6,7 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Mail, Lock, Eye, EyeOff, LogIn, GraduationCap, Headset, ShieldCheck } from 'lucide-react';
-import { createClient } from '@/lib/supabase/client';
+import { signIn } from '@/lib/actions/auth';
 import { loginSchema, type LoginInput } from '@/lib/validations';
 import { ROLE_HOME } from '@/lib/roles';
 import { Button, FieldError, Input, Label } from '@/components/crm/ui';
@@ -35,30 +35,12 @@ function LoginForm() {
 
   const onSubmit = async (values: LoginInput) => {
     setNotice('');
-    if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
-      setNotice('Login is not active yet — Supabase needs to be configured. See CRM_SETUP.md.');
+    const res = await signIn(values);
+    if (!res.ok) {
+      setNotice(res.error || 'Invalid email or password.');
       return;
     }
-    const supabase = createClient();
-    const { data, error } = await supabase.auth.signInWithPassword(values);
-    if (error) {
-      setNotice(error.message || 'Invalid email or password.');
-      return;
-    }
-
-    const { data: profile } = await supabase
-      .from('users').select('role').eq('id', data.user!.id).single();
-    const role = (profile?.role ?? 'student') as UserRole;
-
-    // Admin has access to everything — allowed via any portal.
-    // Other roles must use their own portal.
-    if (role !== 'super_admin' && role !== active.role) {
-      await supabase.auth.signOut();
-      const need = PORTALS.find((p) => p.role === role)?.label ?? 'your';
-      setNotice(`This is a ${need} account. Please switch to the ${need} portal to sign in.`);
-      return;
-    }
-
+    const role = (res.role ?? 'student') as UserRole;
     router.push(params.get('redirect') || ROLE_HOME[role]);
     router.refresh();
   };
@@ -87,9 +69,7 @@ function LoginForm() {
       </div>
 
       <div className="text-center mb-6">
-        <h1 className="font-display text-2xl font-extrabold text-foreground tracking-tight">
-          {active.label} Login
-        </h1>
+        <h1 className="font-display text-2xl font-extrabold text-foreground tracking-tight">{active.label} Login</h1>
         <p className="text-sm text-foreground/60 font-medium mt-1">{active.blurb}</p>
       </div>
 
@@ -130,13 +110,12 @@ function LoginForm() {
         )}
       </form>
 
-      {portal === 'student' && (
+      {portal === 'student' ? (
         <p className="text-center text-sm text-foreground/60 font-medium mt-6">
           New student?{' '}
           <Link href="/register" className="font-semibold text-primary hover:underline">Create an account</Link>
         </p>
-      )}
-      {portal !== 'student' && (
+      ) : (
         <p className="text-center text-[11px] text-foreground/45 font-medium mt-6">
           {portal === 'staff' ? 'Staff accounts are created by the admin.' : 'Authorized personnel only.'}
         </p>
