@@ -1,5 +1,5 @@
 import { notFound } from 'next/navigation';
-import { getCurrentUser } from '@/lib/auth';
+import { requireRole } from '@/lib/auth';
 import { getStudent, getStudentPayments, getStudentNotes, getMessages } from '@/lib/queries';
 import { getOrCreateConversation } from '@/lib/actions/chat';
 import { counsellorSetStatus } from '@/lib/actions/counsellor';
@@ -13,7 +13,7 @@ import { MapPin, Globe, GraduationCap } from 'lucide-react';
 
 export default async function CounsellorStudentDetail({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const me = (await getCurrentUser())!;
+  const me = await requireRole('counsellor');
   const student = await getStudent(id);
   if (!student) notFound();
 

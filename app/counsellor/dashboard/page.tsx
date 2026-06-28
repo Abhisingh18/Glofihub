@@ -1,4 +1,4 @@
-import { getCurrentUser } from '@/lib/auth';
+import { requireRole } from '@/lib/auth';
 import { sql, one } from '@/lib/pg';
 import { getStudents } from '@/lib/queries';
 import { PageHeader, StatCard, Money, StatusBadge, EmptyState } from '@/components/crm/widgets';
@@ -9,7 +9,7 @@ import { Users, Flame, MessageCircle, IndianRupee } from 'lucide-react';
 const ACTIVE = ['contacted', 'interested', 'follow_up', 'active'];
 
 export default async function CounsellorDashboard() {
-  const me = (await getCurrentUser())!;
+  const me = await requireRole('counsellor');
   const students = await getStudents(); // scoped → only assigned
 
   const msgRow = await one<{ count: string }>(

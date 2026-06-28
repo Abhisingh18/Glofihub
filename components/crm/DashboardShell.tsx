@@ -3,13 +3,17 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { Menu, X, LogOut, GraduationCap, type LucideIcon } from 'lucide-react';
+import {
+  Menu, X, LogOut, GraduationCap, type LucideIcon,
+  LayoutDashboard, Users, UserCog, CreditCard, Network, BarChart3, Settings,
+  MessagesSquare, UserCircle,
+} from 'lucide-react';
 import { signOut } from '@/lib/actions/auth';
 import { cn } from '@/lib/utils';
 import type { UserRole } from '@/lib/database.types';
 import { NotificationBell } from '@/components/crm/NotificationBell';
 
-export interface NavItem {
+interface NavItem {
   href: string;
   label: string;
   icon: LucideIcon;
@@ -21,13 +25,37 @@ const ROLE_LABEL: Record<UserRole, string> = {
   student: 'Student',
 };
 
+// Defined in the client component so icon functions never cross the server→client boundary.
+const NAV_BY_ROLE: Record<UserRole, NavItem[]> = {
+  super_admin: [
+    { href: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    { href: '/admin/students', label: 'Students', icon: Users },
+    { href: '/admin/counsellors', label: 'Counsellors', icon: UserCog },
+    { href: '/admin/assignments', label: 'Assignments', icon: Network },
+    { href: '/admin/payments', label: 'Payments', icon: CreditCard },
+    { href: '/admin/analytics', label: 'Analytics', icon: BarChart3 },
+    { href: '/admin/settings', label: 'Settings', icon: Settings },
+  ],
+  counsellor: [
+    { href: '/counsellor/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    { href: '/counsellor/students', label: 'My Students', icon: Users },
+    { href: '/counsellor/messages', label: 'Messages', icon: MessagesSquare },
+  ],
+  student: [
+    { href: '/student/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    { href: '/student/chat', label: 'Chat', icon: MessagesSquare },
+    { href: '/student/payments', label: 'Payments', icon: CreditCard },
+    { href: '/student/profile', label: 'Profile', icon: UserCircle },
+  ],
+};
+
 interface Props {
   user: { id: string; full_name: string; email: string; role: UserRole; profile_image?: string | null };
-  nav: NavItem[];
   children: React.ReactNode;
 }
 
-export function DashboardShell({ user, nav, children }: Props) {
+export function DashboardShell({ user, children }: Props) {
+  const nav = NAV_BY_ROLE[user.role] ?? [];
   const pathname = usePathname();
   const router = useRouter();
   const [open, setOpen] = useState(false);

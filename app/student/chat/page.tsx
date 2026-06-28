@@ -1,4 +1,4 @@
-import { getCurrentUser } from '@/lib/auth';
+import { requireRole } from '@/lib/auth';
 import { getMyStudent, getMessages } from '@/lib/queries';
 import { getOrCreateConversation } from '@/lib/actions/chat';
 import { PageHeader, EmptyState } from '@/components/crm/widgets';
@@ -7,7 +7,7 @@ import { MessagesSquare } from 'lucide-react';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 export default async function StudentChat() {
-  const me = (await getCurrentUser())!;
+  const me = await requireRole('student');
   const student = (await getMyStudent()) as any;
   const counsellor = student?.counsellor;
 

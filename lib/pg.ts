@@ -1,9 +1,10 @@
-import { Pool } from 'pg';
+import { Pool, neonConfig } from '@neondatabase/serverless';
+import ws from 'ws';
 
-/**
- * Single Postgres pool (survives HMR in dev & reuse in serverless).
- * Set DATABASE_URL to any Postgres (Neon / Railway / Render / local).
- */
+// Neon serverless driver talks over HTTPS/WSS (port 443) — works on Vercel and
+// on networks where the raw Postgres port (5432) is blocked.
+neonConfig.webSocketConstructor = ws;
+
 declare global {
   // eslint-disable-next-line no-var
   var __pgPool: Pool | undefined;
@@ -14,12 +15,7 @@ function makePool() {
   if (!connectionString) {
     throw new Error('DATABASE_URL is not set. Add it to .env.local (see CRM_SETUP.md).');
   }
-  const local = /localhost|127\.0\.0\.1/.test(connectionString);
-  return new Pool({
-    connectionString,
-    max: 5,
-    ssl: local ? undefined : { rejectUnauthorized: false },
-  });
+  return new Pool({ connectionString });
 }
 
 export function getPool(): Pool {
