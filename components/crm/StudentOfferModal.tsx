@@ -7,7 +7,7 @@ const WHATSAPP_NUMBER = '919241168875';
 
 interface Plan { minutes: number; price: number; label: string; badge?: string; highlight?: boolean }
 const PLANS: Plan[] = [
-  { minutes: 10, price: 1, label: 'Intro call', badge: 'Just ₹1', highlight: true },
+  { minutes: 11, price: 1, label: 'Intro call', badge: 'Just ₹1', highlight: true },
   { minutes: 30, price: 499, label: 'Standard' },
   { minutes: 60, price: 899, label: 'Extended' },
 ];

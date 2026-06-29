@@ -40,11 +40,11 @@ export default async function StudentDashboard() {
               <Sparkles size={26} className="mx-auto text-primary mb-2" />
               <p className="text-sm font-semibold text-foreground">Talk to a Russia Counsellor 🇷🇺</p>
               <p className="text-xs text-foreground/55 font-medium mt-1 mb-3">
-                First 10 minutes for just ₹1 — call starts within 30 minutes.
+                First 11 minutes for just ₹1 — call starts within 30 minutes.
               </p>
               <a
                 href={`https://wa.me/919241168875?text=${encodeURIComponent(
-                  `Hi GlofiHub! 👋 I'm ${student?.user?.full_name ?? 'a student'}. I want the intro plan — 10 minutes for ₹1 with a Russia counsellor. Please share payment details.`
+                  `Hi GlofiHub! 👋 I'm ${student?.user?.full_name ?? 'a student'}. I want the intro plan — 11 minutes for ₹1 with a Russia counsellor. Please share payment details.`
                 )}`}
                 target="_blank"
                 rel="noopener noreferrer"
