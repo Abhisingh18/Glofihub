@@ -5,7 +5,7 @@ import { revalidatePath } from 'next/cache';
 import { sql, one } from '@/lib/pg';
 import { requireRole } from '@/lib/auth';
 import { logActivity, notify } from '@/lib/activity';
-import { counsellorSchema, assignSchema, statusSchema } from '@/lib/validations';
+import { counsellorSchema, assignSchema, statusSchema, minutesSchema } from '@/lib/validations';
 import { getOrCreateConversation } from '@/lib/actions/chat';
 
 type Result = { ok: boolean; error?: string };
@@ -74,6 +74,23 @@ export async function assignStudent(input: unknown): Promise<Result> {
   }
   await logActivity(admin.id, 'Assigned student to counsellor', { student_id, counsellor_id });
   revalidatePath('/admin/assignments');
+  revalidatePath('/admin/students');
+  return { ok: true };
+}
+
+/** Admin grants a student N minutes of talk time (resets their clock). */
+export async function setStudentMinutes(input: unknown): Promise<Result> {
+  const admin = await requireRole('super_admin');
+  const parsed = minutesSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: 'Invalid minutes' };
+  const { student_id, minutes } = parsed.data;
+
+  // Reset the clock so the new allowance starts when the student next opens chat.
+  await sql(`update students set chat_minutes = $2, chat_started_at = null where id = $1`, [student_id, minutes]);
+
+  const s = await one<{ user_id: string }>(`select user_id from students where id = $1`, [student_id]);
+  if (s) await notify(s.user_id, 'minutes', 'Talk time updated', `You now have ${minutes} minute(s) to chat with your counsellor.`);
+  await logActivity(admin.id, 'Set student talk minutes', { student_id, minutes });
   revalidatePath('/admin/students');
   return { ok: true };
 }

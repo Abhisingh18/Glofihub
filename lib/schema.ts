@@ -116,6 +116,10 @@ create table if not exists notifications (
   created_at timestamptz not null default now()
 );
 
+-- Talk-time allowance (admin-controlled). chat_started_at marks when the clock began.
+alter table students add column if not exists chat_minutes int not null default 0;
+alter table students add column if not exists chat_started_at timestamptz;
+
 create index if not exists idx_students_counsellor on students(assigned_counsellor_id);
 create index if not exists idx_students_status on students(status);
 create index if not exists idx_messages_conversation on messages(conversation_id, created_at);

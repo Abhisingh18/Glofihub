@@ -14,11 +14,12 @@ export interface StudentRow {
   email: string;
   counsellor_id: string | null;
   counsellor_name: string | null;
+  chat_minutes: number;
 }
 
 const STUDENT_SELECT = `
   select s.id, s.status, s.city, s.country_interest, s.education_level, s.created_at, s.user_id,
-         s.assigned_counsellor_id as counsellor_id,
+         s.assigned_counsellor_id as counsellor_id, s.chat_minutes,
          u.full_name, u.email,
          cu.full_name as counsellor_name
   from students s
@@ -93,6 +94,8 @@ export interface MyStudent {
   country_interest: string | null;
   education_level: string | null;
   created_at: string;
+  chat_minutes: number;
+  chat_started_at: string | null;
   user: { full_name: string; email: string; phone: string | null };
   counsellor: { id: string; department: string | null; user_id: string; user: { full_name: string } } | null;
 }
@@ -103,11 +106,12 @@ export async function getMyStudent(): Promise<MyStudent | null> {
   if (!me) return null;
   const r = await one<{
     id: string; status: StudentStatus; city: string | null; country_interest: string | null;
-    education_level: string | null; created_at: string;
+    education_level: string | null; created_at: string; chat_minutes: number; chat_started_at: string | null;
     u_full_name: string; u_email: string; u_phone: string | null;
     c_id: string | null; c_department: string | null; c_user_id: string | null; c_name: string | null;
   }>(
     `select s.id, s.status, s.city, s.country_interest, s.education_level, s.created_at,
+            s.chat_minutes, s.chat_started_at,
             u.full_name as u_full_name, u.email as u_email, u.phone as u_phone,
             c.id as c_id, c.department as c_department, c.user_id as c_user_id, cu.full_name as c_name
      from students s
@@ -125,6 +129,8 @@ export async function getMyStudent(): Promise<MyStudent | null> {
     country_interest: r.country_interest,
     education_level: r.education_level,
     created_at: r.created_at,
+    chat_minutes: r.chat_minutes ?? 0,
+    chat_started_at: r.chat_started_at,
     user: { full_name: r.u_full_name, email: r.u_email, phone: r.u_phone },
     counsellor: r.c_id
       ? { id: r.c_id, department: r.c_department, user_id: r.c_user_id!, user: { full_name: r.c_name ?? 'Counsellor' } }

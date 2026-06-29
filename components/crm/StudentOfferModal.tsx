@@ -4,7 +4,13 @@ import { useEffect, useState } from 'react';
 import { X, Sparkles, Clock, ShieldCheck, CheckCircle2 } from 'lucide-react';
 
 const WHATSAPP_NUMBER = '919241168875';
-const PRICE = 499;
+
+interface Plan { minutes: number; price: number; label: string; badge?: string; highlight?: boolean }
+const PLANS: Plan[] = [
+  { minutes: 10, price: 1, label: 'Intro call', badge: 'Just ₹1', highlight: true },
+  { minutes: 30, price: 499, label: 'Standard' },
+  { minutes: 60, price: 899, label: 'Extended' },
+];
 
 function WhatsAppIcon({ size = 20 }: { size?: number }) {
   return (
@@ -31,11 +37,11 @@ export function StudentOfferModal({ studentName }: { studentName: string }) {
     setOpen(false);
   };
 
-  const waText =
-    `Hi GlofiHub! 👋 I'm ${studentName || 'a student'}. ` +
-    `I want to talk to a *Russia counsellor*. I'm ready to recharge ₹${PRICE} for a 30-minute call. ` +
-    `Please share the payment details.`;
-  const waLink = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(waText)}`;
+  const waLink = (p: Plan) =>
+    `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(
+      `Hi GlofiHub! 👋 I'm ${studentName || 'a student'}. I want to talk to a *Russia counsellor*. ` +
+      `I'd like the ${p.minutes}-minute plan for ₹${p.price}. Please share the payment details.`
+    )}`;
 
   if (!open) return null;
 
@@ -67,45 +73,54 @@ export function StudentOfferModal({ studentName }: { studentName: string }) {
 
         {/* Body */}
         <div className="p-6">
-          <div className="flex items-end gap-2 mb-4">
-            <span className="font-display text-4xl font-extrabold text-foreground">₹{PRICE}</span>
-            <span className="text-foreground/55 font-medium mb-1">/ recharge</span>
+          <div className="flex items-center gap-2.5 mb-4 text-sm text-foreground/70">
+            <Clock size={16} className="text-emerald-600 shrink-0" />
+            Your call starts <b className="text-foreground">within 30 minutes</b> of payment.
           </div>
 
-          <ul className="space-y-2.5 mb-5">
-            <li className="flex items-center gap-2.5 text-sm text-foreground/75">
-              <Clock size={16} className="text-emerald-600 shrink-0" />
-              Your call starts <b className="text-foreground">within 30 minutes</b>
-            </li>
-            <li className="flex items-center gap-2.5 text-sm text-foreground/75">
-              <CheckCircle2 size={16} className="text-emerald-600 shrink-0" />
-              1-on-1 with a dedicated Russia counsellor
-            </li>
-            <li className="flex items-center gap-2.5 text-sm text-foreground/75">
-              <ShieldCheck size={16} className="text-emerald-600 shrink-0" />
-              Pay safely via WhatsApp with our team
-            </li>
-          </ul>
+          {/* Plans */}
+          <div className="space-y-2.5">
+            {PLANS.map((p) => (
+              <a
+                key={p.minutes}
+                href={waLink(p)}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={close}
+                className={
+                  'group flex items-center justify-between gap-3 p-3.5 rounded-2xl border transition-all hover:-translate-y-0.5 ' +
+                  (p.highlight
+                    ? 'border-emerald-500/40 bg-emerald-500/[0.06] shadow-sm'
+                    : 'border-foreground/10 bg-muted/30 hover:border-primary/30')
+                }
+              >
+                <div>
+                  <p className="font-display font-bold text-foreground flex items-center gap-2">
+                    {p.minutes} minutes
+                    {p.badge && (
+                      <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-500 text-white font-bold">{p.badge}</span>
+                    )}
+                  </p>
+                  <p className="text-[11px] text-foreground/50 font-medium">{p.label} · 1-on-1 Russia counsellor</p>
+                </div>
+                <span className="flex items-center gap-2 shrink-0">
+                  <span className="font-display text-lg font-extrabold text-foreground">₹{p.price}</span>
+                  <span className="w-9 h-9 rounded-full bg-[#25D366] text-white flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <WhatsAppIcon size={18} />
+                  </span>
+                </span>
+              </a>
+            ))}
+          </div>
 
-          {/* WhatsApp CTA */}
-          <a
-            href={waLink}
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={close}
-            className="w-full flex items-center justify-center gap-2.5 py-3.5 rounded-full bg-[#25D366] text-white font-semibold text-sm shadow-lg shadow-[#25D366]/30 hover:-translate-y-0.5 hover:shadow-xl transition-all"
-          >
-            <WhatsAppIcon size={20} /> Recharge ₹{PRICE} on WhatsApp
-          </a>
-
-          <p className="text-center text-[11px] text-foreground/45 font-medium mt-3 leading-relaxed">
-            After payment, our admin will connect you to the right counsellor.
-            You&apos;ll then be able to chat right here in the app.
-          </p>
+          <div className="mt-4 flex items-center justify-center gap-4 text-[11px] text-foreground/45 font-medium">
+            <span className="flex items-center gap-1"><ShieldCheck size={12} className="text-emerald-600" /> Pay via WhatsApp</span>
+            <span className="flex items-center gap-1"><CheckCircle2 size={12} className="text-emerald-600" /> Admin connects you</span>
+          </div>
 
           <button
             onClick={close}
-            className="w-full mt-2 py-2 text-xs font-medium text-foreground/45 hover:text-foreground transition cursor-pointer"
+            className="w-full mt-3 py-2 text-xs font-medium text-foreground/45 hover:text-foreground transition cursor-pointer"
           >
             Maybe later
           </button>

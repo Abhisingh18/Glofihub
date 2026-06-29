@@ -62,6 +62,11 @@ export const profileSchema = z.object({
   education_level: z.string().optional(),
 });
 
+export const minutesSchema = z.object({
+  student_id: z.string().uuid(),
+  minutes: z.coerce.number().int().min(0).max(100000),
+});
+
 export const paymentOrderSchema = z.object({
   payment_type: z.enum(['registration_fee', 'counselling_fee', 'premium_package']),
 });
