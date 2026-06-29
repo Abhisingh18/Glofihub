@@ -98,6 +98,7 @@ export default function RegisterPage() {
               <option>Undergraduate</option>
               <option>Graduate</option>
               <option>Postgraduate</option>
+              <option>Other</option>
             </Select>
           </div>
         </div>

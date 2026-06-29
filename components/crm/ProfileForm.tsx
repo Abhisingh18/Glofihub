@@ -47,6 +47,7 @@ export function ProfileForm({ defaults }: { defaults: Values }) {
           <option>Undergraduate</option>
           <option>Graduate</option>
           <option>Postgraduate</option>
+          <option>Other</option>
         </Select>
       </div>
       <div className="flex items-center gap-3">
