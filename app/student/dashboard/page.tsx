@@ -3,6 +3,7 @@ import { getMyStudent } from '@/lib/queries';
 import { PageHeader, StatusBadge } from '@/components/crm/widgets';
 import { Card, Button } from '@/components/crm/ui';
 import { UserCheck, MessagesSquare, CreditCard, Sparkles } from 'lucide-react';
+import { StudentOfferModal } from '@/components/crm/StudentOfferModal';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 export default async function StudentDashboard() {
@@ -11,6 +12,9 @@ export default async function StudentDashboard() {
 
   return (
     <>
+      {/* Until a counsellor is assigned, prompt the student to recharge & connect. */}
+      {!counsellor && <StudentOfferModal studentName={student?.user?.full_name ?? ''} />}
+
       <PageHeader
         title={`Hi, ${student?.user?.full_name?.split(' ')[0] || 'there'} 👋`}
         subtitle="Your counselling journey"
@@ -32,9 +36,23 @@ export default async function StudentDashboard() {
               </div>
             </div>
           ) : (
-            <div className="text-center py-6">
-              <Sparkles size={28} className="mx-auto text-foreground/30 mb-2" />
-              <p className="text-sm text-foreground/60 font-medium">A counsellor will be assigned to you shortly.</p>
+            <div className="text-center py-4">
+              <Sparkles size={26} className="mx-auto text-primary mb-2" />
+              <p className="text-sm font-semibold text-foreground">Talk to a Russia Counsellor 🇷🇺</p>
+              <p className="text-xs text-foreground/55 font-medium mt-1 mb-3">
+                Recharge ₹499 — your call starts within 30 minutes.
+              </p>
+              <a
+                href={`https://wa.me/919241168875?text=${encodeURIComponent(
+                  `Hi GlofiHub! 👋 I'm ${student?.user?.full_name ?? 'a student'}. I want to talk to a Russia counsellor. I'm ready to recharge ₹499 for a 30-minute call. Please share payment details.`
+                )}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-full bg-[#25D366] text-white font-semibold text-xs shadow-md shadow-[#25D366]/30 hover:-translate-y-0.5 transition-all"
+              >
+                Recharge ₹499 on WhatsApp
+              </a>
+              <p className="text-[10px] text-foreground/40 mt-2">After payment, admin will connect you.</p>
             </div>
           )}
         </Card>
