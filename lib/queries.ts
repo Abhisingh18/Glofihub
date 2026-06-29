@@ -14,6 +14,7 @@ export interface StudentRow {
   email: string;
   counsellor_id: string | null;
   counsellor_name: string | null;
+  counsellor_user_id: string | null;
   chat_minutes: number;
 }
 
@@ -21,7 +22,7 @@ const STUDENT_SELECT = `
   select s.id, s.status, s.city, s.country_interest, s.education_level, s.created_at, s.user_id,
          s.assigned_counsellor_id as counsellor_id, s.chat_minutes,
          u.full_name, u.email,
-         cu.full_name as counsellor_name
+         cu.full_name as counsellor_name, c.user_id as counsellor_user_id
   from students s
   join users u on u.id = s.user_id
   left join counsellors c on c.id = s.assigned_counsellor_id
@@ -85,6 +86,14 @@ export async function getCounsellors(): Promise<CounsellorRow[]> {
 
 export async function getMessages(conversationId: string): Promise<Message[]> {
   return sql<Message>(`select * from messages where conversation_id = $1 order by created_at asc`, [conversationId]);
+}
+
+/** Read-only transcript between two users (used by admin to review chats). */
+export async function getChatTranscript(userId1: string, userId2: string): Promise<Message[]> {
+  const [a, b] = [userId1, userId2].sort();
+  const conv = await one<{ id: string }>(`select id from conversations where user_a = $1 and user_b = $2`, [a, b]);
+  if (!conv) return [];
+  return sql<Message>(`select * from messages where conversation_id = $1 order by created_at asc`, [conv.id]);
 }
 
 export interface MyStudent {

@@ -1,14 +1,15 @@
 import { notFound } from 'next/navigation';
-import { getStudent, getStudentPayments, getStudentNotes, getCounsellors } from '@/lib/queries';
+import { getStudent, getStudentPayments, getStudentNotes, getCounsellors, getChatTranscript } from '@/lib/queries';
 import { sql } from '@/lib/pg';
 import { PageHeader, StatusBadge, Money } from '@/components/crm/widgets';
+import { cn } from '@/lib/utils';
 import { Card } from '@/components/crm/ui';
 import { StatusChanger } from '@/components/crm/StatusChanger';
 import { AssignControl } from '@/components/crm/AssignControl';
 import { MinutesControl } from '@/components/crm/MinutesControl';
 import { setStudentStatus } from '@/lib/actions/admin';
 import { PAYMENT_TYPE_META, type ActivityLog } from '@/lib/database.types';
-import { MapPin, Globe, GraduationCap, Calendar, StickyNote, CreditCard, Activity } from 'lucide-react';
+import { MapPin, Globe, GraduationCap, Calendar, StickyNote, CreditCard, Activity, MessagesSquare } from 'lucide-react';
 
 export default async function AdminStudentDetail({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -26,7 +27,13 @@ export default async function AdminStudentDetail({ params }: { params: Promise<{
     [student.user_id]
   );
 
+  // Chat transcript between this student and their assigned counsellor (read-only).
+  const transcript = student.counsellor_user_id
+    ? await getChatTranscript(student.user_id, student.counsellor_user_id)
+    : [];
+
   const fmt = (ts: string) => new Date(ts).toLocaleString([], { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  const fmtTime = (ts: string) => new Date(ts).toLocaleString([], { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
 
   return (
     <>
@@ -119,6 +126,37 @@ export default async function AdminStudentDetail({ params }: { params: Promise<{
                 </li>
               ))}
             </ul>
+          )}
+        </Card>
+
+        {/* Chat transcript (read-only) */}
+        <Card className="p-5 lg:col-span-3">
+          <h3 className="font-display font-bold text-foreground mb-1 flex items-center gap-2">
+            <MessagesSquare size={16} /> Chat — {student.full_name} &amp; {student.counsellor_name ?? 'Counsellor'}
+          </h3>
+          <p className="text-[11px] text-foreground/45 mb-4">Read-only view of the in-app conversation.</p>
+          {!student.counsellor_user_id ? (
+            <p className="text-sm text-foreground/45">No counsellor assigned yet.</p>
+          ) : transcript.length === 0 ? (
+            <p className="text-sm text-foreground/45">No messages yet.</p>
+          ) : (
+            <div className="space-y-2.5 max-h-[28rem] overflow-y-auto pr-1">
+              {transcript.map((m) => {
+                const fromStudent = m.sender_id === student.user_id;
+                return (
+                  <div key={m.id} className={cn('flex', fromStudent ? 'justify-start' : 'justify-end')}>
+                    <div className={cn('max-w-[70%] px-3.5 py-2 rounded-2xl text-sm',
+                      fromStudent ? 'bg-muted text-foreground rounded-bl-sm' : 'bg-primary/10 text-foreground rounded-br-sm border border-primary/15')}>
+                      <p className="text-[10px] font-semibold text-foreground/50 mb-0.5">
+                        {fromStudent ? student.full_name : (student.counsellor_name ?? 'Counsellor')}
+                      </p>
+                      <p className="whitespace-pre-wrap break-words">{m.message}</p>
+                      <p className="text-[10px] text-foreground/40 mt-0.5">{fmtTime(m.created_at)}</p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           )}
         </Card>
       </div>
