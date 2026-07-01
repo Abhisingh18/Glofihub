@@ -12,6 +12,7 @@ import { Contact } from '@/components/Contact';
 import { Footer } from '@/components/Footer';
 import { Chatbot } from '@/components/Chatbot';
 import { FloatingContact } from '@/components/FloatingContact';
+import { TechPartnerStrip } from '@/components/TechPartnerStrip';
 
 export default function Home() {
   return (
@@ -25,6 +26,7 @@ export default function Home() {
       <Videos />
       <Achievements />
       <Contact />
+      <TechPartnerStrip />
       <Footer />
       <Chatbot />
       <FloatingContact />
