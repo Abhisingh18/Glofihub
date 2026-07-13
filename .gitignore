@@ -38,3 +38,6 @@ next-env.d.ts
 components/BG photo/
 components/Services/
 *.MOV
+
+.vercel
+.env*

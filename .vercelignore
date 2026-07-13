@@ -1,0 +1,8 @@
+# Raw source media (large originals) — the web-optimised versions live in /public
+components/BG photo/
+components/Services/
+*.MOV
+
+# Build & deps
+.next
+node_modules
