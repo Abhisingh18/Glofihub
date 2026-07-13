@@ -12,7 +12,7 @@ Built with **Next.js 16**, **React 19**, **Tailwind CSS v4** and an optional
 ## ✨ Features
 
 - **Premium animated UI** — themed hero, services, portfolio, achievements,
-  parent reviews, founder & team, all with scroll-reveal animations.
+  parent reviews, founder & team, all with scroll-reveal animation.
 - **Dedicated pages** — Home, `/services` (full service catalogue), `/about`
   (founder + team), `/admin` (login) and `/admin/dashboard`.
 - **Get Started flow** — modal chooser → Student registration form or Admin login.
