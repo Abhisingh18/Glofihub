@@ -11,7 +11,7 @@ Built with **Next.js 16**, **React 19**, **Tailwind CSS v4** and an optional
 
 ## ✨ Features
 
-- **Premium animated UI** — themed hero, services, portfolio, achievements,
+- **Premium animated UI** — themed hero, services, portfolios, achievements,
   parent reviews, founder & team, all with scroll-reveal animation.
 - **Dedicated pages** — Home, `/services` (full service catalogue), `/about`
   (founder + team), `/admin` (login) and `/admin/dashboard`.
