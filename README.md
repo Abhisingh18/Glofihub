@@ -63,7 +63,7 @@ Copy `.env.local.example` to `.env.local` and fill in your values:
 NEXT_PUBLIC_SITE_URL=https://glofihub.com
 NEXT_PUBLIC_SUPABASE_URL=...
 NEXT_PUBLIC_SUPABASE_ANON_KEY=...
-```
+,,,
 
 Without these the site still works (data saves to the browser's `localStorage`
 and admin login uses demo credentials).
