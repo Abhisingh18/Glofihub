@@ -13,6 +13,8 @@ import { Footer } from '@/components/Footer';
 import { Chatbot } from '@/components/Chatbot';
 import { FloatingContact } from '@/components/FloatingContact';
 import { TechPartnerStrip } from '@/components/TechPartnerStrip';
+import { FloatingGetStarted } from '@/components/FloatingGetStarted';
+import { CounsellingFlyers } from '@/components/CounsellingFlyers';
 
 export default function Home() {
   return (
@@ -30,6 +32,8 @@ export default function Home() {
       <Footer />
       <Chatbot />
       <FloatingContact />
+      <FloatingGetStarted />
+      <CounsellingFlyers />
     </main>
   );
 }
