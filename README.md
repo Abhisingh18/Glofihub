@@ -3,7 +3,7 @@
 GlofiHub is a modern education & career platform that connects students and
 professionals with study-abroad, MBBS, jobs, skills and digital growth services.
 Built with **Next.js 16**, **React 19**, **Tailwind CSS v4** and an optional
-**Postgre SQL** backend systems.
+**Postgre SQL** backend system.
 
 🔗 **Repo:** https://github.com/Abhisingh18/Glofihub
 
