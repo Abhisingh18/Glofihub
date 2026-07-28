@@ -70,14 +70,6 @@ and admin login uses demo credentials).
 
 ---
 
-## 🔐 Admin
-
-- Login page: `/admin`
-- Demo credentials: `admin@glofihub.com` · `Glofihub@123`
-- Dashboard: `/admin/dashboard`
-
-> For real, cross-device data and secure auth, set up Supabase — see
-> [`SUPABASE_SETUP.md`](./SUPABASE_SETUP.md).
 
 ---
 
