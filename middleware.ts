@@ -7,39 +7,75 @@ const PROTECTED = ['/admin', '/counsellor', '/student'];
 const AUTH_PAGES = ['/login', '/register', '/forgot-password'];
 
 export async function middleware(request: NextRequest) {
-  const path = request.nextUrl.pathname;
+  const url = request.nextUrl;
+  const path = url.pathname;
+  const host = (request.headers.get('host') ?? url.host).toLowerCase();
+
+  // Subdomain split only applies on the real glofihub.com domains.
+  // On localhost / *.vercel.app everything stays accessible (dev & previews).
+  const isProdDomain = host.endsWith('glofihub.com');
+  const isAdminHost = host.startsWith('admin.');
+  const mainHost = host.replace(/^(admin\.|www\.)/, '');
+
   const token = request.cookies.get(SESSION_COOKIE)?.value;
   const session = token ? await verifyToken(token) : null;
+  const role = session?.role as UserRole | undefined;
 
   const isProtected = PROTECTED.some((p) => path.startsWith(p));
   const isAuthPage = AUTH_PAGES.some((p) => path.startsWith(p));
 
-  // Not signed in → block protected areas.
+  // ── Hostname-based portal split (production domains only) ──
+  if (isProdDomain) {
+    if (isAdminHost) {
+      // Students don't belong on the staff portal → bounce to the public site.
+      if (role === 'student') {
+        return NextResponse.redirect(`${url.protocol}//${mainHost}/student/dashboard`);
+      }
+      // admin.glofihub.com serves ONLY: login/forgot, admin/*, counsellor/*, api/*.
+      const allowed =
+        path.startsWith('/admin') ||
+        path.startsWith('/counsellor') ||
+        path === '/login' ||
+        path === '/forgot-password' ||
+        path.startsWith('/api');
+      if (!allowed) {
+        const u = url.clone();
+        u.pathname = '/login';
+        u.search = '';
+        return NextResponse.redirect(u);
+      }
+    } else {
+      // Public site: staff areas live on the admin subdomain.
+      if (path.startsWith('/admin') || path.startsWith('/counsellor')) {
+        return NextResponse.redirect(`${url.protocol}//admin.${mainHost}/login`);
+      }
+    }
+  }
+
+  // ── Auth gate ──
   if (!session && isProtected) {
-    const url = request.nextUrl.clone();
-    url.pathname = '/login';
-    url.searchParams.set('redirect', path);
-    return NextResponse.redirect(url);
+    const u = url.clone();
+    u.pathname = '/login';
+    u.searchParams.set('redirect', path);
+    return NextResponse.redirect(u);
   }
 
   if (session) {
-    const home = ROLE_HOME[session.role as UserRole] ?? '/login';
+    const home = ROLE_HOME[role ?? 'student'] ?? '/login';
 
-    // Already signed in → keep away from auth pages.
     if (isAuthPage) {
-      const url = request.nextUrl.clone();
-      url.pathname = home;
-      url.search = '';
-      return NextResponse.redirect(url);
+      const u = url.clone();
+      u.pathname = home;
+      u.search = '';
+      return NextResponse.redirect(u);
     }
 
-    // Wrong section for this role (admin may go anywhere).
     const section = PROTECTED.find((p) => path.startsWith(p));
-    if (section && session.role !== 'super_admin' && !home.startsWith(section)) {
-      const url = request.nextUrl.clone();
-      url.pathname = home;
-      url.search = '';
-      return NextResponse.redirect(url);
+    if (section && role !== 'super_admin' && !home.startsWith(section)) {
+      const u = url.clone();
+      u.pathname = home;
+      u.search = '';
+      return NextResponse.redirect(u);
     }
   }
 
@@ -47,5 +83,6 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/admin/:path*', '/counsellor/:path*', '/student/:path*', '/login', '/register', '/forgot-password'],
+  // Run on all routes except Next internals & static files (those have a dot).
+  matcher: ['/((?!_next/static|_next/image|favicon.ico|.*\\..*).*)'],
 };
