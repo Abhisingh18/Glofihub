@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
@@ -24,6 +24,8 @@ const PORTALS: { key: Portal; label: string; role: UserRole; icon: typeof Mail; 
 function LoginForm() {
   const router = useRouter();
   const params = useSearchParams();
+  // Staff portal lives on the admin subdomain; the public site is students only.
+  const [isAdminHost, setIsAdminHost] = useState(false);
   const [portal, setPortal] = useState<Portal>('student');
   const [showPw, setShowPw] = useState(false);
   const [notice, setNotice] = useState('');
@@ -31,7 +33,16 @@ function LoginForm() {
     resolver: zodResolver(loginSchema),
   });
 
-  const active = PORTALS.find((p) => p.key === portal)!;
+  useEffect(() => {
+    const admin = window.location.hostname.startsWith('admin.');
+    setIsAdminHost(admin);
+    setPortal(admin ? 'staff' : 'student');
+  }, []);
+
+  const visiblePortals = isAdminHost
+    ? PORTALS.filter((p) => p.key === 'staff' || p.key === 'admin')
+    : PORTALS.filter((p) => p.key === 'student');
+  const active = visiblePortals.find((p) => p.key === portal) ?? visiblePortals[0];
 
   const onSubmit = async (values: LoginInput) => {
     setNotice('');
@@ -47,26 +58,28 @@ function LoginForm() {
 
   return (
     <>
-      {/* Portal switcher */}
-      <div className="grid grid-cols-3 gap-1.5 p-1.5 rounded-2xl bg-muted/50 border border-foreground/10 mb-6">
-        {PORTALS.map((p) => {
-          const isActive = portal === p.key;
-          const Icon = p.icon;
-          return (
-            <button
-              key={p.key}
-              type="button"
-              onClick={() => { setPortal(p.key); setNotice(''); }}
-              className={cn(
-                'flex flex-col items-center gap-1 py-2.5 rounded-xl text-xs font-semibold transition-all cursor-pointer',
-                isActive ? 'bg-card text-primary shadow-sm border border-foreground/10' : 'text-foreground/55 hover:text-foreground'
-              )}
-            >
-              <Icon size={18} /> {p.label}
-            </button>
-          );
-        })}
-      </div>
+      {/* Portal switcher — only when more than one portal is available (staff host) */}
+      {visiblePortals.length > 1 && (
+        <div className="grid grid-cols-2 gap-1.5 p-1.5 rounded-2xl bg-muted/50 border border-foreground/10 mb-6">
+          {visiblePortals.map((p) => {
+            const isActive = active.key === p.key;
+            const Icon = p.icon;
+            return (
+              <button
+                key={p.key}
+                type="button"
+                onClick={() => { setPortal(p.key); setNotice(''); }}
+                className={cn(
+                  'flex flex-col items-center gap-1 py-2.5 rounded-xl text-xs font-semibold transition-all cursor-pointer',
+                  isActive ? 'bg-card text-primary shadow-sm border border-foreground/10' : 'text-foreground/55 hover:text-foreground'
+                )}
+              >
+                <Icon size={18} /> {p.label}
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       <div className="text-center mb-6">
         <h1 className="font-display text-2xl font-extrabold text-foreground tracking-tight">{active.label} Login</h1>
@@ -110,14 +123,14 @@ function LoginForm() {
         )}
       </form>
 
-      {portal === 'student' ? (
+      {active.key === 'student' ? (
         <p className="text-center text-sm text-foreground/60 font-medium mt-6">
           New student?{' '}
           <Link href="/register" className="font-semibold text-primary hover:underline">Create an account</Link>
         </p>
       ) : (
         <p className="text-center text-[11px] text-foreground/45 font-medium mt-6">
-          {portal === 'staff' ? 'Staff accounts are created by the admin.' : 'Authorized personnel only.'}
+          {active.key === 'staff' ? 'Staff accounts are created by the admin.' : 'Authorized personnel only.'}
         </p>
       )}
     </>

@@ -11,10 +11,11 @@ export async function middleware(request: NextRequest) {
   const path = url.pathname;
   const host = (request.headers.get('host') ?? url.host).toLowerCase();
 
-  // Subdomain split only applies on the real glofihub.com domains.
-  // On localhost / *.vercel.app everything stays accessible (dev & previews).
-  const isProdDomain = host.endsWith('glofihub.com');
+  // Portal split: the admin host (admin.glofihub.com OR admin.localhost:3000 for
+  // local testing) is staff-only; the public glofihub.com blocks staff routes.
+  // Plain localhost / *.vercel.app stay fully open for dev & previews.
   const isAdminHost = host.startsWith('admin.');
+  const isPublicProd = host.endsWith('glofihub.com');
   const mainHost = host.replace(/^(admin\.|www\.)/, '');
 
   const token = request.cookies.get(SESSION_COOKIE)?.value;
@@ -24,31 +25,39 @@ export async function middleware(request: NextRequest) {
   const isProtected = PROTECTED.some((p) => path.startsWith(p));
   const isAuthPage = AUTH_PAGES.some((p) => path.startsWith(p));
 
-  // ── Hostname-based portal split (production domains only) ──
-  if (isProdDomain) {
-    if (isAdminHost) {
-      // Students don't belong on the staff portal → bounce to the public site.
-      if (role === 'student') {
-        return NextResponse.redirect(`${url.protocol}//${mainHost}/student/dashboard`);
-      }
-      // admin.glofihub.com serves ONLY: login/forgot, admin/*, counsellor/*, api/*.
-      const allowed =
-        path.startsWith('/admin') ||
-        path.startsWith('/counsellor') ||
-        path === '/login' ||
-        path === '/forgot-password' ||
-        path.startsWith('/api');
-      if (!allowed) {
-        const u = url.clone();
-        u.pathname = '/login';
-        u.search = '';
+  // ── Hostname-based portal split ──
+  if (isAdminHost) {
+    // Students don't belong on the staff portal → bounce to the public site.
+    if (role === 'student') {
+      return NextResponse.redirect(`${url.protocol}//${mainHost}/student/dashboard`);
+    }
+    // Root of the admin host shows a dedicated portal landing (not the public site).
+    if (path === '/') {
+      if (session) {
+        const home = ROLE_HOME[role ?? 'student'] ?? '/login';
+        const u = url.clone(); u.pathname = home; u.search = '';
         return NextResponse.redirect(u);
       }
-    } else {
-      // Public site: staff areas live on the admin subdomain.
-      if (path.startsWith('/admin') || path.startsWith('/counsellor')) {
-        return NextResponse.redirect(`${url.protocol}//admin.${mainHost}/login`);
-      }
+      return NextResponse.rewrite(new URL('/portal', url));
+    }
+    // The admin host serves ONLY: portal landing, login/forgot, admin/*, counsellor/*, api/*.
+    const allowed =
+      path === '/portal' ||
+      path.startsWith('/admin') ||
+      path.startsWith('/counsellor') ||
+      path === '/login' ||
+      path === '/forgot-password' ||
+      path.startsWith('/api');
+    if (!allowed) {
+      const u = url.clone();
+      u.pathname = '/login';
+      u.search = '';
+      return NextResponse.redirect(u);
+    }
+  } else if (isPublicProd) {
+    // Public glofihub.com: staff areas live on the admin subdomain.
+    if (path.startsWith('/admin') || path.startsWith('/counsellor')) {
+      return NextResponse.redirect(`${url.protocol}//admin.${mainHost}/login`);
     }
   }
 

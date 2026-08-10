@@ -18,9 +18,10 @@ export function StatCard({
   label, value, icon: Icon, accent = 'from-primary to-blue-600',
 }: { label: string; value: React.ReactNode; icon: LucideIcon; accent?: string }) {
   return (
-    <div className="p-5 rounded-2xl bg-card border border-foreground/10 shadow-sm">
-      <div className="flex items-center gap-3">
-        <span className={cn('w-11 h-11 rounded-xl bg-gradient-to-br text-white flex items-center justify-center shadow-md shrink-0', accent)}>
+    <div className="group relative p-5 rounded-2xl bg-card border border-foreground/10 shadow-sm hover:shadow-lg hover:-translate-y-0.5 hover:border-primary/20 transition-all duration-300 overflow-hidden">
+      <span aria-hidden className={cn('pointer-events-none absolute -top-8 -right-8 w-24 h-24 rounded-full bg-gradient-to-br opacity-[0.08] blur-2xl group-hover:opacity-20 transition-opacity', accent)} />
+      <div className="relative flex items-center gap-3">
+        <span className={cn('w-11 h-11 rounded-xl bg-gradient-to-br text-white flex items-center justify-center shadow-md shrink-0 group-hover:scale-110 transition-transform', accent)}>
           <Icon size={20} />
         </span>
         <div className="min-w-0">

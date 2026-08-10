@@ -1,7 +1,7 @@
 'use client';
 
 import {
-  Megaphone, Sparkles, Package, FolderKanban, Check, ArrowRight, Phone,
+  Megaphone, Sparkles, Package, FolderKanban, Check, ArrowRight, Phone, Code2,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -20,6 +20,25 @@ const WHATSAPP_NUMBER = '919241168875';
 const WHATSAPP_TEXT = 'Hi GlofiHub 👋, I want to know more about your services.';
 
 const CATEGORIES: ServiceCategory[] = [
+  {
+    icon: Code2,
+    title: 'Web, App & AI Development',
+    intro: 'Custom websites, apps and AI agents — built end to end for your business.',
+    items: [
+      { name: 'Website Development', detail: 'Fast, responsive, SEO-ready websites tailored to your brand.' },
+      { name: 'Web Application Development', detail: 'Scalable web apps & dashboards with secure logins.' },
+      { name: 'Mobile App Development', detail: 'Android & iOS apps with a smooth, native-like experience.' },
+      { name: 'AI Agents & Chatbots', detail: 'Smart assistants that talk to customers & automate tasks 24/7.' },
+      { name: 'AI Automation', detail: 'Automate workflows, replies and data with AI.' },
+      { name: 'SaaS Product Development', detail: 'Launch your subscription software from idea to production.' },
+      { name: 'E-commerce Platforms', detail: 'Feature-rich online stores with payments & inventory.' },
+      { name: 'CRM & ERP Systems', detail: 'Custom systems to manage leads, staff & operations.' },
+      { name: 'Custom Software', detail: 'Bespoke software built around your exact requirements.' },
+      { name: 'UI/UX Design', detail: 'Clean, modern interfaces that users love.' },
+      { name: 'API Development & Integration', detail: 'Connect your tools with secure, reliable APIs.' },
+      { name: 'Cloud & Deployment', detail: 'Hosting, DevOps and reliable deployment.' },
+    ],
+  },
   {
     icon: Megaphone,
     title: 'Digital Marketing',
@@ -84,6 +103,7 @@ const CATEGORIES: ServiceCategory[] = [
 ];
 
 const accents = [
+  'from-cyan-500 to-blue-600',
   'from-primary to-blue-600',
   'from-emerald-500 to-green-600',
   'from-violet-500 to-fuchsia-600',
