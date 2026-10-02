@@ -52,7 +52,10 @@ function LoginForm() {
       return;
     }
     const role = (res.role ?? 'student') as UserRole;
-    router.push(params.get('redirect') || ROLE_HOME[role]);
+    // Only same-site paths — block absolute / protocol-relative URLs (e.g. //evil.com).
+    const next = params.get('redirect');
+    const safeNext = next && next.startsWith('/') && !next.startsWith('//') && !next.startsWith('/\\') ? next : null;
+    router.push(safeNext || ROLE_HOME[role]);
     router.refresh();
   };
 
