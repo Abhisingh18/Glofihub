@@ -1,42 +1,110 @@
 'use client';
 
-import { useState, useContext, useEffect, useRef } from 'react';
+import {
+  useState,
+  useContext,
+  useEffect,
+  useRef,
+  useCallback,
+  type PointerEvent as ReactPointerEvent,
+  type KeyboardEvent as ReactKeyboardEvent,
+  type FocusEvent as ReactFocusEvent,
+  type MouseEvent as ReactMouseEvent,
+} from 'react';
+import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Menu, X, Moon, Sun, Phone, Mail, Sparkles, ArrowRight } from 'lucide-react';
+import { Menu, X, Moon, Sun, Phone, Mail, Sparkles, ArrowRight, ChevronDown } from 'lucide-react';
 import { ThemeContext } from './ThemeProvider';
+import { DIVISIONS } from '@/lib/divisions';
+import { SITE } from '@/lib/site';
 
 interface NavLink {
   label: string;
   href: string;
   /** Section id on the home page (null for standalone routes). */
   id: string | null;
+  /** Renders the "Businesses" mega-menu (desktop) / accordion (mobile). */
+  menu?: boolean;
 }
 
 const NAV_LINKS: NavLink[] = [
   { label: 'Home', href: '/#home', id: 'home' },
+  { label: 'Businesses', href: '/#businesses', id: 'businesses', menu: true },
   { label: 'Services', href: '/services', id: null },
   { label: 'Portfolio', href: '/#portfolio', id: 'portfolio' },
   { label: 'Achievements', href: '/#achievements', id: 'achievements' },
   { label: 'About', href: '/about', id: null },
 ];
 
+/** Standalone division routes (e.g. /academy) — the Businesses item stays highlighted on them. */
+const DIVISION_ROUTES = DIVISIONS.filter((d) => d.href === `/${d.slug}`).map((d) => d.href);
+
+const RING =
+  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/70 focus-visible:ring-offset-2 focus-visible:ring-offset-background';
+const RING_INSET =
+  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent/70';
+
+const getLinks = (root: HTMLElement | null): HTMLElement[] =>
+  root ? Array.from(root.querySelectorAll<HTMLElement>('a[href]')) : [];
+
+/** Small "Soon" pill for divisions that haven't launched yet. */
+function SoonBadge() {
+  return (
+    <>
+      <span
+        aria-hidden="true"
+        className="shrink-0 rounded-full border border-amber-500/30 bg-amber-500/10 px-1.5 py-0.5 text-[9px] font-bold uppercase leading-none tracking-wider text-amber-700 dark:text-amber-300"
+      >
+        Soon
+      </span>
+      <span className="sr-only">(launching soon)</span>
+    </>
+  );
+}
+
 export function Navbar() {
-  const [isOpen, setIsOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState(false); // mobile panel
+  const [mobileBiz, setMobileBiz] = useState(false); // mobile "Businesses" accordion
+  const [bizOpen, setBizOpen] = useState(false); // desktop "Businesses" mega-menu
   const [scrolled, setScrolled] = useState(false);
   const [active, setActive] = useState<string>('');
   const { isDark, setIsDark } = useContext(ThemeContext);
   const pathname = usePathname();
 
+  // Close every menu when the route changes (adjust-state-during-render pattern).
+  const [prevPath, setPrevPath] = useState(pathname);
+  if (prevPath !== pathname) {
+    setPrevPath(pathname);
+    setIsOpen(false);
+    setBizOpen(false);
+    setMobileBiz(false);
+  }
+
   // Sliding pill indicator
-  const listRef = useRef<HTMLDivElement>(null);
-  const linkRefs = useRef<(HTMLAnchorElement | null)[]>([]);
+  const listRef = useRef<HTMLElement>(null);
+  const linkRefs = useRef<(HTMLElement | null)[]>([]);
   const [pill, setPill] = useState({ left: 0, width: 0, opacity: 0 });
+
+  // Desktop mega-menu plumbing
+  const bizWrapRef = useRef<HTMLDivElement | null>(null);
+  const bizBtnRef = useRef<HTMLButtonElement>(null);
+  const bizPanelRef = useRef<HTMLDivElement>(null);
+  const bizTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  /** 'hover' menus close when the pointer leaves; 'click' (pinned / keyboard / touch) menus don't. */
+  const bizMode = useRef<'hover' | 'click'>('hover');
+  const focusFirstRef = useRef(false);
+
+  // Mobile plumbing
+  const menuToggleRef = useRef<HTMLButtonElement>(null);
+  const mobilePanelRef = useRef<HTMLElement>(null);
 
   const toggleTheme = () => setIsDark(!isDark);
 
   // A link is active when its home-section is in view, or its route is current.
-  const isLinkActive = (link: NavLink) =>
-    link.id ? pathname === '/' && active === link.id : pathname.startsWith(link.href);
+  const isLinkActive = (link: NavLink) => {
+    if (link.menu && DIVISION_ROUTES.some((r) => pathname === r || pathname.startsWith(`${r}/`))) return true;
+    return link.id ? pathname === '/' && active === link.id : pathname.startsWith(link.href);
+  };
 
   const movePillTo = (el: HTMLElement | null) => {
     const container = listRef.current;
@@ -51,6 +119,151 @@ export function Navbar() {
     if (idx >= 0 && linkRefs.current[idx]) movePillTo(linkRefs.current[idx]);
     else setPill((p) => ({ ...p, opacity: 0 }));
   };
+
+  const closeMobile = () => setIsOpen(false);
+
+  /* ── Desktop mega-menu behaviour ─────────────────────────────────────── */
+  const clearBizTimer = useCallback(() => {
+    if (bizTimer.current) {
+      clearTimeout(bizTimer.current);
+      bizTimer.current = null;
+    }
+  }, []);
+
+  const closeBiz = useCallback(
+    (returnFocus = false) => {
+      clearBizTimer();
+      bizMode.current = 'hover';
+      setBizOpen(false);
+      if (returnFocus) bizBtnRef.current?.focus();
+    },
+    [clearBizTimer]
+  );
+
+  // Hover intent — mouse only, so touch taps on tablets use the click path instead.
+  const onBizPointerEnter = (e: ReactPointerEvent<HTMLDivElement>) => {
+    if (e.pointerType !== 'mouse') return;
+    clearBizTimer();
+    if (bizOpen) return;
+    bizTimer.current = setTimeout(() => {
+      bizMode.current = 'hover';
+      setBizOpen(true);
+    }, 90);
+  };
+
+  const onBizPointerLeave = (e: ReactPointerEvent<HTMLDivElement>) => {
+    if (e.pointerType !== 'mouse') return;
+    clearBizTimer();
+    if (bizMode.current !== 'hover') return;
+    bizTimer.current = setTimeout(() => setBizOpen(false), 160);
+  };
+
+  const onBizButtonClick = () => {
+    clearBizTimer();
+    if (!bizOpen) {
+      bizMode.current = 'click';
+      setBizOpen(true);
+    } else if (bizMode.current === 'hover') {
+      bizMode.current = 'click'; // clicking a hover-opened menu pins it open
+    } else {
+      closeBiz();
+    }
+  };
+
+  const onBizButtonKeyDown = (e: ReactKeyboardEvent<HTMLButtonElement>) => {
+    if (e.key !== 'ArrowDown') return;
+    e.preventDefault();
+    clearBizTimer();
+    bizMode.current = 'click';
+    if (bizOpen) getLinks(bizPanelRef.current)[0]?.focus();
+    else {
+      focusFirstRef.current = true;
+      setBizOpen(true);
+    }
+  };
+
+  const onBizPanelKeyDown = (e: ReactKeyboardEvent<HTMLDivElement>) => {
+    const items = getLinks(bizPanelRef.current);
+    if (items.length === 0) return;
+    const i = items.indexOf(document.activeElement as HTMLElement);
+    let next = -1;
+    if (e.key === 'ArrowDown') next = (i + 1) % items.length;
+    else if (e.key === 'ArrowUp') next = i <= 0 ? items.length - 1 : i - 1;
+    else if (e.key === 'Home') next = 0;
+    else if (e.key === 'End') next = items.length - 1;
+    if (next >= 0) {
+      e.preventDefault();
+      items[next]?.focus();
+    }
+  };
+
+  // Close when keyboard focus tabs out of the menu.
+  const onBizBlur = (e: ReactFocusEvent<HTMLDivElement>) => {
+    const next = e.relatedTarget as Node | null;
+    if (next && !e.currentTarget.contains(next)) closeBiz();
+  };
+
+  // Logo: smooth-scroll to top when already on the home page, otherwise route to "/".
+  const onLogoClick = (e: ReactMouseEvent<HTMLAnchorElement>) => {
+    setIsOpen(false);
+    closeBiz();
+    if (pathname === '/' && e.button === 0 && !e.metaKey && !e.ctrlKey && !e.shiftKey && !e.altKey) {
+      e.preventDefault();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
+  // Move focus into the panel after a keyboard open (ArrowDown on the toggle).
+  useEffect(() => {
+    if (bizOpen && focusFirstRef.current) {
+      focusFirstRef.current = false;
+      getLinks(bizPanelRef.current)[0]?.focus();
+    }
+  }, [bizOpen]);
+
+  // Outside click / tap closes the mega-menu.
+  useEffect(() => {
+    if (!bizOpen) return;
+    const onDown = (e: PointerEvent) => {
+      if (!bizWrapRef.current?.contains(e.target as Node)) closeBiz();
+    };
+    document.addEventListener('pointerdown', onDown);
+    return () => document.removeEventListener('pointerdown', onDown);
+  }, [bizOpen, closeBiz]);
+
+  // Esc closes whichever menu is open and returns focus to its trigger.
+  useEffect(() => {
+    if (!bizOpen && !isOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return;
+      const activeEl = document.activeElement;
+      if (bizOpen) {
+        closeBiz(bizWrapRef.current?.contains(activeEl) ?? false);
+      }
+      if (isOpen) {
+        const inside =
+          activeEl === menuToggleRef.current || (mobilePanelRef.current?.contains(activeEl) ?? false);
+        if (inside) menuToggleRef.current?.focus();
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [bizOpen, isOpen, closeBiz]);
+
+  // Don't leave a pending hover timer behind on unmount.
+  useEffect(() => clearBizTimer, [clearBizTimer]);
+
+  // Crossing the lg breakpoint swaps menus — reset both so nothing stays locked / stuck open.
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 1024px)');
+    const onChange = (e: MediaQueryListEvent) => {
+      if (e.matches) setIsOpen(false);
+      else closeBiz();
+    };
+    mq.addEventListener('change', onChange);
+    return () => mq.removeEventListener('change', onChange);
+  }, [closeBiz]);
 
   // Glass-shrink after a bit of scroll
   useEffect(() => {
@@ -94,11 +307,13 @@ export function Navbar() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [active, scrolled, pathname]);
 
-  // Lock body scroll while the mobile menu is open
+  // Lock body scroll while the mobile menu is open (restore only what we changed)
   useEffect(() => {
-    document.body.style.overflow = isOpen ? 'hidden' : '';
+    if (!isOpen) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
     return () => {
-      document.body.style.overflow = '';
+      document.body.style.overflow = prev;
     };
   }, [isOpen]);
 
@@ -117,70 +332,208 @@ export function Navbar() {
         <span className="pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
 
         {/* Logo */}
-        <a href="/" className="flex items-center gap-2.5 group shrink-0">
+        <Link
+          href="/"
+          onClick={onLogoClick}
+          aria-label={`${SITE.name} home`}
+          className={`flex items-center gap-2.5 group shrink-0 rounded-xl ${RING}`}
+        >
           <div
             className={`relative rounded-xl overflow-hidden ring-1 ring-foreground/10 shadow-sm transition-all duration-300 group-hover:ring-primary/50 ${
               scrolled ? 'w-9 h-9' : 'w-10 h-10'
             }`}
           >
-            <img src="/logo/logo.png" alt="GlofiHub Logo" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
+            <img
+              src="/logo/logo.png"
+              alt=""
+              aria-hidden="true"
+              width={40}
+              height={40}
+              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+            />
             <span className="absolute inset-0 ring-1 ring-inset ring-white/10 rounded-xl" />
           </div>
           <div className="flex flex-col">
             <span className="font-display font-bold text-lg leading-none tracking-tight bg-gradient-to-br from-foreground to-foreground/60 bg-clip-text text-transparent">
-              GlofiHub
+              {SITE.name}
             </span>
             <span className="text-[7.5px] uppercase tracking-[0.24em] font-bold text-foreground/40 leading-none mt-1 hidden sm:block">
               Global Future Initiative
             </span>
           </div>
-        </a>
+        </Link>
 
         {/* Desktop links with sliding pill */}
-        <div
+        <nav
           ref={listRef}
+          aria-label="Primary"
           onMouseLeave={movePillToActive}
-          className="hidden lg:flex items-center gap-0.5 relative"
+          className="hidden lg:flex items-center gap-0.5 relative self-stretch"
         >
           {/* Sliding pill background */}
           <span
-            className="absolute top-1/2 -translate-y-1/2 h-9 rounded-full bg-gradient-to-r from-primary/12 to-accent/12 border border-primary/15 transition-all duration-300 ease-out"
+            aria-hidden="true"
+            className="absolute top-1/2 -translate-y-1/2 h-9 rounded-full bg-gradient-to-r from-primary/12 to-accent/12 border border-primary/15 transition-all duration-300 ease-out motion-reduce:transition-none"
             style={{ left: pill.left, width: pill.width, opacity: pill.opacity }}
           />
           {NAV_LINKS.map((link, i) => {
             const isActive = isLinkActive(link);
+
+            if (link.menu) {
+              const lit = isActive || bizOpen;
+              return (
+                <div
+                  key={link.href}
+                  ref={(el) => {
+                    linkRefs.current[i] = el;
+                    bizWrapRef.current = el;
+                  }}
+                  onMouseEnter={(e) => movePillTo(e.currentTarget)}
+                  onPointerEnter={onBizPointerEnter}
+                  onPointerLeave={onBizPointerLeave}
+                  onBlur={onBizBlur}
+                  className="flex items-center self-stretch"
+                >
+                  {/* Plain link = no-JS / fallback behaviour and scroll-spy target (#businesses) */}
+                  <Link
+                    href={link.href}
+                    onClick={() => closeBiz()}
+                    className={`relative z-10 py-2 pl-3 xl:pl-3.5 pr-1 text-[13px] font-semibold tracking-normal rounded-full transition-colors duration-200 ${RING} ${
+                      lit ? 'text-primary dark:text-accent' : 'text-foreground/70 hover:text-foreground'
+                    }`}
+                  >
+                    {link.label}
+                  </Link>
+                  <button
+                    ref={bizBtnRef}
+                    type="button"
+                    onClick={onBizButtonClick}
+                    onKeyDown={onBizButtonKeyDown}
+                    aria-label="Businesses menu"
+                    aria-haspopup="true"
+                    aria-expanded={bizOpen}
+                    aria-controls="businesses-menu"
+                    className={`relative z-10 flex items-center py-2 pl-0.5 pr-2.5 xl:pr-3 rounded-full cursor-pointer transition-colors duration-200 ${RING} ${
+                      lit ? 'text-primary dark:text-accent' : 'text-foreground/60 hover:text-foreground'
+                    }`}
+                  >
+                    <ChevronDown
+                      size={14}
+                      aria-hidden="true"
+                      className={`transition-transform duration-300 motion-reduce:transition-none ${
+                        bizOpen ? 'rotate-180' : 'rotate-0'
+                      }`}
+                    />
+                  </button>
+
+                  {/* Mega-menu — anchored to the nav, centred, and capped to the viewport width */}
+                  <div
+                    id="businesses-menu"
+                    ref={bizPanelRef}
+                    role="group"
+                    aria-label="Our businesses"
+                    inert={!bizOpen}
+                    onKeyDown={onBizPanelKeyDown}
+                    className={`absolute left-1/2 top-full z-20 -translate-x-1/2 w-[min(42rem,calc(100vw-2rem))] origin-top pt-2.5 transition-[opacity,transform,translate,scale] duration-200 ease-out motion-reduce:transition-none ${
+                      bizOpen
+                        ? 'pointer-events-auto translate-y-0 scale-100 opacity-100'
+                        : 'pointer-events-none translate-y-2 scale-[0.98] opacity-0'
+                    }`}
+                  >
+                    <div className="relative overflow-hidden rounded-2xl border border-foreground/10 bg-card p-2 shadow-2xl shadow-black/15 dark:shadow-black/60">
+                      <span
+                        aria-hidden="true"
+                        className="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent"
+                      />
+                      <p className="px-3 pb-1.5 pt-2 text-[10px] font-bold uppercase tracking-[0.2em] text-foreground/45">
+                        Our businesses
+                      </p>
+                      <ul className="grid grid-cols-2 gap-1">
+                        {DIVISIONS.map((d) => {
+                          const Icon = d.icon;
+                          return (
+                            <li key={d.slug}>
+                              <Link
+                                href={d.href}
+                                onClick={() => closeBiz()}
+                                className={`group flex items-center gap-3 rounded-xl p-3 transition-colors duration-200 hover:bg-foreground/5 ${RING_INSET}`}
+                              >
+                                <span
+                                  className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-white shadow-md transition-all duration-300 group-hover:scale-105 motion-reduce:transition-none ${d.iconBg} ${d.glow}`}
+                                >
+                                  <Icon size={20} aria-hidden="true" />
+                                </span>
+                                <span className="min-w-0 flex-1">
+                                  <span className="flex items-center gap-2">
+                                    <span className="truncate font-display text-sm font-bold tracking-tight text-foreground">
+                                      {d.name}
+                                    </span>
+                                    {d.status === 'soon' && <SoonBadge />}
+                                  </span>
+                                  <span className="mt-0.5 block text-xs leading-snug text-foreground/60">
+                                    {d.tagline}
+                                  </span>
+                                </span>
+                                <ArrowRight
+                                  size={14}
+                                  aria-hidden="true"
+                                  className="shrink-0 -translate-x-1 text-foreground/40 opacity-0 transition-all duration-200 group-hover:translate-x-0 group-hover:opacity-100 group-focus-visible:translate-x-0 group-focus-visible:opacity-100 motion-reduce:transition-none"
+                                />
+                              </Link>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                      <Link
+                        href="/#businesses"
+                        onClick={() => closeBiz()}
+                        className={`mt-1 flex items-center justify-between rounded-xl border-t border-foreground/10 px-3 py-2.5 text-xs font-semibold text-primary transition-colors hover:bg-foreground/5 dark:text-accent ${RING_INSET}`}
+                      >
+                        Explore all businesses
+                        <ArrowRight size={14} aria-hidden="true" />
+                      </Link>
+                    </div>
+                  </div>
+                </div>
+              );
+            }
+
             return (
-              <a
+              <Link
                 key={link.href}
                 href={link.href}
-                ref={(el) => { linkRefs.current[i] = el; }}
+                ref={(el) => {
+                  linkRefs.current[i] = el;
+                }}
                 onMouseEnter={(e) => movePillTo(e.currentTarget)}
-                className={`relative z-10 px-3.5 py-2 text-[13px] font-semibold tracking-normal rounded-full transition-colors duration-200 ${
+                className={`relative z-10 px-3 xl:px-3.5 py-2 text-[13px] font-semibold tracking-normal rounded-full transition-colors duration-200 ${RING} ${
                   isActive ? 'text-primary dark:text-accent' : 'text-foreground/70 hover:text-foreground'
                 }`}
               >
                 {link.label}
-              </a>
+              </Link>
             );
           })}
-        </div>
+        </nav>
 
         {/* Right controls */}
         <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
           <button
+            type="button"
             onClick={toggleTheme}
-            aria-label="Toggle theme"
-            className="relative p-2 rounded-xl text-foreground/70 hover:text-foreground hover:bg-foreground/5 transition-all duration-200 cursor-pointer active:scale-90"
+            aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+            className={`relative p-2 rounded-xl text-foreground/70 hover:text-foreground hover:bg-foreground/5 transition-all duration-200 cursor-pointer active:scale-90 ${RING}`}
           >
-            <span className="block transition-transform duration-500" style={{ transform: isDark ? 'rotate(180deg)' : 'rotate(0deg)' }}>
+            <span className="block transition-transform duration-500 motion-reduce:transition-none" style={{ transform: isDark ? 'rotate(180deg)' : 'rotate(0deg)' }}>
               {isDark ? <Sun size={18} className="text-accent" /> : <Moon size={18} className="text-primary" />}
             </span>
           </button>
 
           {/* Primary CTA (desktop) */}
           <button
+            type="button"
             onClick={() => window.dispatchEvent(new CustomEvent('openGetStarted'))}
-            className="btn-shine hidden md:inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-primary to-accent text-white px-5 py-2.5 text-[13px] font-semibold tracking-normal shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/40 hover:-translate-y-0.5 transition-all duration-300 cursor-pointer"
+            className={`btn-shine hidden md:inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-primary to-accent text-white px-5 py-2.5 text-[13px] font-semibold tracking-normal shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/40 hover:-translate-y-0.5 transition-all duration-300 cursor-pointer ${RING}`}
           >
             <Sparkles size={14} />
             Get Started
@@ -188,9 +541,13 @@ export function Navbar() {
 
           {/* Mobile menu toggle */}
           <button
+            ref={menuToggleRef}
+            type="button"
             onClick={() => setIsOpen(!isOpen)}
-            aria-label="Toggle menu"
-            className="lg:hidden p-2 rounded-xl text-foreground hover:bg-foreground/5 transition-colors active:scale-90"
+            aria-label={isOpen ? 'Close menu' : 'Open menu'}
+            aria-expanded={isOpen}
+            aria-controls="mobile-nav"
+            className={`lg:hidden p-2 rounded-xl text-foreground hover:bg-foreground/5 transition-colors active:scale-90 cursor-pointer ${RING}`}
           >
             {isOpen ? <X size={22} /> : <Menu size={22} />}
           </button>
@@ -198,64 +555,170 @@ export function Navbar() {
       </div>
 
       {/* ── Mobile menu ─────────────────────────────────────────────────── */}
-      {/* Backdrop */}
+      {/* Backdrop (header is pointer-events-none, so opt back in while open) */}
       <div
-        onClick={() => setIsOpen(false)}
-        className={`lg:hidden fixed inset-0 bg-black/50 backdrop-blur-sm transition-opacity duration-300 ${
-          isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
+        aria-hidden="true"
+        onClick={closeMobile}
+        className={`lg:hidden fixed inset-0 bg-black/50 backdrop-blur-sm transition-opacity duration-300 motion-reduce:transition-none ${
+          isOpen ? 'pointer-events-auto opacity-100' : 'pointer-events-none opacity-0'
         }`}
         style={{ zIndex: -1 }}
       />
       {/* Panel */}
-      <div
-        className={`pointer-events-auto lg:hidden mx-auto mt-2 max-w-6xl overflow-hidden rounded-2xl border border-foreground/10 bg-background/90 backdrop-blur-xl shadow-2xl transition-[max-height,opacity] duration-400 ease-out ${
-          isOpen ? 'max-h-[80vh] opacity-100' : 'max-h-0 opacity-0 border-transparent'
+      <nav
+        id="mobile-nav"
+        ref={mobilePanelRef}
+        aria-label="Mobile"
+        inert={!isOpen}
+        className={`lg:hidden mx-auto mt-2 max-w-6xl overflow-hidden rounded-2xl border border-foreground/10 bg-background/90 backdrop-blur-xl shadow-2xl transition-[max-height,opacity] duration-400 ease-out motion-reduce:transition-none ${
+          isOpen
+            ? 'pointer-events-auto max-h-[calc(100dvh-6rem)] opacity-100'
+            : 'pointer-events-none max-h-0 opacity-0 border-transparent'
         }`}
       >
-        <div className="px-3 py-3 space-y-1">
-          {NAV_LINKS.map((link, i) => (
-            <a
-              key={link.href}
-              href={link.href}
-              onClick={() => setIsOpen(false)}
-              className={`flex items-center justify-between px-4 py-3 rounded-xl font-semibold text-sm tracking-normal transition-all duration-300 ${
-                isLinkActive(link)
-                  ? 'bg-gradient-to-r from-primary/15 to-accent/10 text-primary dark:text-accent'
-                  : 'text-foreground/75 hover:bg-foreground/5 hover:text-foreground'
-              } ${isOpen ? 'translate-x-0 opacity-100' : 'translate-x-4 opacity-0'}`}
-              style={{ transitionDelay: isOpen ? `${i * 45}ms` : '0ms' }}
-            >
-              {link.label}
-              <ArrowRight size={14} className="text-foreground/30" />
-            </a>
-          ))}
+        <div className="max-h-[calc(100dvh-6rem)] overflow-y-auto overscroll-contain px-3 py-3 space-y-1">
+          {NAV_LINKS.map((link, i) => {
+            const isActive = isLinkActive(link);
+            const anim = `transition-all duration-300 motion-reduce:transition-none ${
+              isOpen ? 'translate-x-0 opacity-100' : 'translate-x-4 opacity-0'
+            }`;
+            const delay = { transitionDelay: isOpen ? `${i * 45}ms` : '0ms' };
+
+            if (link.menu) {
+              return (
+                <div key={link.href} className={anim} style={delay}>
+                  <div
+                    className={`flex items-stretch rounded-xl transition-colors duration-300 ${
+                      isActive ? 'bg-gradient-to-r from-primary/15 to-accent/10' : 'hover:bg-foreground/5'
+                    }`}
+                  >
+                    <Link
+                      href={link.href}
+                      onClick={closeMobile}
+                      className={`flex flex-1 items-center rounded-xl px-4 py-3 text-sm font-semibold tracking-normal ${RING_INSET} ${
+                        isActive ? 'text-primary dark:text-accent' : 'text-foreground/75 hover:text-foreground'
+                      }`}
+                    >
+                      {link.label}
+                    </Link>
+                    <button
+                      type="button"
+                      onClick={() => setMobileBiz((v) => !v)}
+                      aria-label="Businesses submenu"
+                      aria-expanded={mobileBiz}
+                      aria-controls="mobile-businesses"
+                      className={`flex min-w-12 items-center justify-center rounded-xl px-3 text-foreground/50 hover:text-foreground cursor-pointer ${RING_INSET}`}
+                    >
+                      <ChevronDown
+                        size={16}
+                        aria-hidden="true"
+                        className={`transition-transform duration-300 motion-reduce:transition-none ${
+                          mobileBiz ? 'rotate-180' : 'rotate-0'
+                        }`}
+                      />
+                    </button>
+                  </div>
+
+                  <div
+                    id="mobile-businesses"
+                    inert={!mobileBiz}
+                    className={`grid transition-[grid-template-rows,opacity] duration-300 ease-out motion-reduce:transition-none ${
+                      mobileBiz ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'
+                    }`}
+                  >
+                    <div className="min-h-0 overflow-hidden">
+                      <ul className="ml-4 mt-1 mb-1 space-y-0.5 border-l border-foreground/10 pl-2">
+                        {DIVISIONS.map((d) => {
+                          const Icon = d.icon;
+                          return (
+                            <li key={d.slug}>
+                              <Link
+                                href={d.href}
+                                onClick={closeMobile}
+                                className={`flex items-center gap-3 rounded-xl px-2.5 py-2 transition-colors hover:bg-foreground/5 ${RING_INSET}`}
+                              >
+                                <span
+                                  className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-white shadow-sm ${d.iconBg}`}
+                                >
+                                  <Icon size={17} aria-hidden="true" />
+                                </span>
+                                <span className="min-w-0 flex-1">
+                                  <span className="flex items-center gap-2">
+                                    <span className="truncate text-[13px] font-semibold text-foreground">{d.name}</span>
+                                    {d.status === 'soon' && <SoonBadge />}
+                                  </span>
+                                  <span className="block truncate text-[11px] text-foreground/55">{d.tagline}</span>
+                                </span>
+                              </Link>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              );
+            }
+
+            return (
+              <Link
+                key={link.href}
+                href={link.href}
+                onClick={closeMobile}
+                className={`flex items-center justify-between px-4 py-3 rounded-xl font-semibold text-sm tracking-normal ${RING_INSET} ${anim} ${
+                  isActive
+                    ? 'bg-gradient-to-r from-primary/15 to-accent/10 text-primary dark:text-accent'
+                    : 'text-foreground/75 hover:bg-foreground/5 hover:text-foreground'
+                }`}
+                style={delay}
+              >
+                {link.label}
+                <ArrowRight size={14} aria-hidden="true" className="text-foreground/30" />
+              </Link>
+            );
+          })}
 
           <button
+            type="button"
             onClick={() => {
               setIsOpen(false);
               window.dispatchEvent(new CustomEvent('openGetStarted'));
             }}
-            className="btn-shine mt-2 w-full inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-primary to-accent text-white px-5 py-3.5 text-sm font-semibold tracking-normal shadow-lg shadow-primary/25"
+            className={`btn-shine mt-2 w-full inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-primary to-accent text-white px-5 py-3.5 text-sm font-semibold tracking-normal shadow-lg shadow-primary/25 cursor-pointer ${RING}`}
           >
             <Sparkles size={15} />
             Get Started
           </button>
 
           {/* Mobile contact quick row */}
-          <div className="flex items-center justify-center gap-5 pt-3 mt-2 border-t border-foreground/10 text-foreground/60">
-            <a href="tel:+919241168875" className="flex items-center gap-1.5 text-[11px] font-bold hover:text-primary transition-colors">
-              <Phone size={13} /> Call
+          <div className="flex items-center justify-center gap-2 pt-3 mt-2 border-t border-foreground/10 text-foreground/60">
+            <a
+              href={`tel:${SITE.phone}`}
+              aria-label={`Call ${SITE.phoneDisplay}`}
+              className={`flex items-center gap-1.5 rounded-lg px-3 py-2 text-[11px] font-bold hover:text-primary transition-colors ${RING_INSET}`}
+            >
+              <Phone size={13} aria-hidden="true" /> Call
             </a>
-            <a href="mailto:info@glofihub.com" className="flex items-center gap-1.5 text-[11px] font-bold hover:text-primary transition-colors">
-              <Mail size={13} /> Email
+            <a
+              href={`mailto:${SITE.email}`}
+              aria-label={`Email ${SITE.email}`}
+              className={`flex items-center gap-1.5 rounded-lg px-3 py-2 text-[11px] font-bold hover:text-primary transition-colors ${RING_INSET}`}
+            >
+              <Mail size={13} aria-hidden="true" /> Email
             </a>
-            <a href="https://wa.me/919241168875" target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-[11px] font-bold text-[#25D366]">
-              <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884" /></svg>
+            <a
+              href={`https://wa.me/${SITE.whatsapp}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Chat on WhatsApp (opens in a new tab)"
+              className={`flex items-center gap-1.5 rounded-lg px-3 py-2 text-[11px] font-bold text-[#25D366] ${RING_INSET}`}
+            >
+              <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884" /></svg>
               WhatsApp
             </a>
           </div>
         </div>
-      </div>
+      </nav>
     </header>
   );
 }
