@@ -5,7 +5,6 @@ import { sql, one } from '@/lib/pg';
 import { requireRole } from '@/lib/auth';
 import { logActivity } from '@/lib/activity';
 import { noteSchema, statusSchema } from '@/lib/validations';
-import type { ActivityLog } from '@/lib/database.types';
 
 type Result = { ok: boolean; error?: string };
 
@@ -50,11 +49,4 @@ export async function counsellorSetStatus(input: unknown): Promise<Result> {
   revalidatePath(`/counsellor/students/${parsed.data.student_id}`);
   revalidatePath('/counsellor/students');
   return { ok: true };
-}
-
-export async function getStudentActivity(userId: string): Promise<ActivityLog[]> {
-  return sql<ActivityLog>(
-    `select * from activity_logs where user_id = $1 order by created_at desc limit 20`,
-    [userId]
-  );
 }
