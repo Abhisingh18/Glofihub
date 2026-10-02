@@ -51,6 +51,11 @@ export async function signIn(input: unknown): Promise<AuthResult> {
   const valid = await bcrypt.compare(password, user.password_hash);
   if (!valid) return { ok: false, error: 'Invalid email or password.' };
 
+  if (user.role === 'counsellor') {
+    const c = await one<{ active: boolean }>(`select active from counsellors where user_id = $1`, [user.id]);
+    if (c && !c.active) return { ok: false, error: 'This account has been deactivated. Contact your administrator.' };
+  }
+
   await setSession({ sub: user.id, role: user.role, name: user.full_name });
   await logActivity(user.id, 'Signed in');
   return { ok: true, role: user.role };
