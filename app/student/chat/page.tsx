@@ -1,6 +1,6 @@
 import { requireRole } from '@/lib/auth';
 import { getMyStudent, getMessages } from '@/lib/queries';
-import { getOrCreateConversation } from '@/lib/actions/chat';
+import { getOrCreateConversation } from '@/lib/conversations';
 import { sql } from '@/lib/pg';
 import { PageHeader, EmptyState } from '@/components/crm/widgets';
 import { ChatBox } from '@/components/crm/ChatBox';

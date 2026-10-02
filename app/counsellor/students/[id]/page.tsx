@@ -1,7 +1,7 @@
 import { notFound } from 'next/navigation';
 import { requireRole } from '@/lib/auth';
 import { getStudent, getStudentPayments, getStudentNotes, getMessages } from '@/lib/queries';
-import { getOrCreateConversation } from '@/lib/actions/chat';
+import { getOrCreateConversation } from '@/lib/conversations';
 import { counsellorSetStatus } from '@/lib/actions/counsellor';
 import { PageHeader, StatusBadge, Money } from '@/components/crm/widgets';
 import { Card } from '@/components/crm/ui';
