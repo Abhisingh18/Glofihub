@@ -10,9 +10,12 @@ export { ROLE_HOME };
 export async function getCurrentUser(): Promise<AppUser | null> {
   const session = await getSession();
   if (!session) return null;
+  // A deactivated counsellor counts as signed out even while their cookie is still valid.
   const user = await one<AppUser>(
-    `select id, full_name, email, role, phone, profile_image, created_at
-     from users where id = $1`,
+    `select u.id, u.full_name, u.email, u.role, u.phone, u.profile_image, u.created_at
+     from users u
+     where u.id = $1
+       and not exists (select 1 from counsellors c where c.user_id = u.id and c.active = false)`,
     [session.sub]
   );
   return user;
@@ -20,7 +23,11 @@ export async function getCurrentUser(): Promise<AppUser | null> {
 
 export async function requireUser(): Promise<AppUser> {
   const user = await getCurrentUser();
-  if (!user) redirect('/login');
+  if (!user) {
+    // A cookie that no longer maps to an active user would bounce between /login and the
+    // dashboard forever, so drop it first.
+    redirect((await getSession()) ? '/api/auth/clear' : '/login');
+  }
   return user;
 }
 
