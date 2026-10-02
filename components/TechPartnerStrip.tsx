@@ -3,7 +3,7 @@ import { ArrowUpRight, Sparkles } from 'lucide-react';
 /** "Tech partner" ribbon + card crediting Pragyaan Labs, with logo & contact CTA. */
 export function TechPartnerStrip() {
   return (
-    <section className="relative py-12 md:py-16 px-4 sm:px-6 lg:px-8 bg-muted/30">
+    <section aria-label="Technology partner" className="relative py-12 md:py-16 px-4 sm:px-6 lg:px-8 bg-muted/30">
       <div className="max-w-5xl mx-auto">
         <div className="relative rounded-3xl overflow-hidden bg-gradient-to-br from-primary via-primary to-blue-950 text-white shadow-xl shadow-primary/20">
           {/* Ambient glows */}
@@ -32,7 +32,11 @@ export function TechPartnerStrip() {
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src="/pragyaan-mark-violet.png"
-                  alt="Pragyaan Labs"
+                  alt="Pragyaan Labs logo"
+                  width={112}
+                  height={112}
+                  loading="lazy"
+                  decoding="async"
                   className="w-full h-full object-contain"
                 />
               </div>
@@ -41,7 +45,7 @@ export function TechPartnerStrip() {
             {/* Copy */}
             <div className="flex-1">
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 border border-white/15 text-[11px] font-semibold tracking-wide mb-3">
-                <Sparkles size={12} className="text-violet-200" /> Built &amp; Managed By
+                <Sparkles size={12} aria-hidden className="text-violet-200" /> Built &amp; Managed By
               </span>
               <h3 className="font-display text-2xl md:text-3xl font-extrabold tracking-tight">
                 Pragyaan Labs
@@ -59,12 +63,13 @@ export function TechPartnerStrip() {
                 href="https://www.pragyaanlabs.space/"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="btn-shine group inline-flex items-center gap-2 px-6 py-3.5 rounded-full bg-white text-primary font-semibold text-sm tracking-wide hover:-translate-y-0.5 hover:shadow-xl transition-all"
+                className="btn-shine group inline-flex items-center gap-2 px-6 py-3.5 rounded-full bg-white text-primary font-semibold text-sm tracking-wide hover:-translate-y-0.5 hover:shadow-xl transition-all motion-reduce:transition-none motion-reduce:hover:translate-y-0 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white"
               >
                 Contact Us
-                <ArrowUpRight size={16} className="group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+                <span className="sr-only"> (Pragyaan Labs website, opens in a new tab)</span>
+                <ArrowUpRight size={16} aria-hidden className="group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform motion-reduce:transition-none" />
               </a>
-              <p className="mt-2 text-[11px] text-white/55 font-medium">pragyaanlabs.space</p>
+              <p className="mt-2 text-[11px] text-white/70 font-medium">pragyaanlabs.space</p>
             </div>
           </div>
         </div>

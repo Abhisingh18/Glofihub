@@ -88,7 +88,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
       </aside>
 
       {/* ── Right form panel ── */}
-      <section className="flex-1 flex flex-col px-5 py-8 sm:px-8 relative bg-gradient-to-b from-background via-background to-muted/30">
+      <section className="flex-1 flex flex-col px-5 py-8 sm:px-8 relative overflow-hidden bg-gradient-to-b from-background via-background to-muted/30">
         {/* mobile ambient */}
         <div aria-hidden className="lg:hidden pointer-events-none absolute -top-20 -right-16 w-72 h-72 rounded-full bg-primary/10 blur-3xl animate-aurora" />
         <div aria-hidden className="pointer-events-none absolute bottom-0 -left-16 w-72 h-72 rounded-full bg-emerald-500/5 blur-3xl" />

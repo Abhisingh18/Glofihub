@@ -11,7 +11,14 @@ export interface SessionPayload {
 }
 
 function secret() {
-  const s = process.env.JWT_SECRET || 'dev-only-insecure-secret-change-me';
+  const s = process.env.JWT_SECRET;
+  if (!s) {
+    // Never fall back to a known key in production — anyone could forge an admin token.
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error('JWT_SECRET is not set. Add it to your environment (see CRM_SETUP.md).');
+    }
+    return new TextEncoder().encode('dev-only-insecure-secret-change-me');
+  }
   return new TextEncoder().encode(s);
 }
 

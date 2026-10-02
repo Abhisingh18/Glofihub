@@ -2,6 +2,7 @@
 
 import { Navbar } from '@/components/Navbar';
 import { Hero } from '@/components/Hero';
+import { Divisions } from '@/components/Divisions';
 import { About } from '@/components/About';
 import { Services } from '@/components/Services';
 import { Portfolio } from '@/components/Portfolio';
@@ -21,6 +22,7 @@ export default function Home() {
     <main className="min-h-screen bg-background text-foreground overflow-x-hidden">
       <Navbar />
       <Hero />
+      <Divisions />
       <About />
       <Services />
       <Portfolio />

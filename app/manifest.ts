@@ -3,9 +3,10 @@ import { SITE } from '@/lib/site'
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: `${SITE.name} — ${SITE.tagline}`,
+    name: `${SITE.name} Group — ${SITE.tagline}`,
     short_name: SITE.shortTitle,
     description: SITE.description,
+    categories: ['business', 'education'],
     start_url: '/',
     display: 'standalone',
     background_color: '#ffffff',

@@ -2,8 +2,16 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { MessageCircle, X, Send, Maximize2, Minimize2, RotateCcw, MessageSquare, GraduationCap, Briefcase, Brain, Users, Globe, MapPin, Stethoscope, CheckCircle, XCircle, UserCheck, Sparkles, Paperclip, FileUp } from 'lucide-react';
+import { MessageCircle, X, Send, Maximize2, Minimize2, RotateCcw, MessageSquare, GraduationCap, Briefcase, Brain, Users, Globe, MapPin, Stethoscope, CheckCircle, XCircle, UserCheck, Sparkles, Paperclip, FileUp, Ship, Code2 } from 'lucide-react';
 import { chatDB, ChatMessage } from '@/lib/db';
+import { DIVISIONS } from '@/lib/divisions';
+import { SITE } from '@/lib/site';
+
+const INTRO_TEXT = 'Hi,\nI’m the GlofiHub AI Assistant — Education, Academy, Export–Import & Digital.\nTell me what you’re looking for:';
+
+// Top-level options that map to a GlofiHub business (DIVISIONS slug).
+// They answer with a short intro instead of entering the multi-step flows.
+const DIVISION_OPTION_SLUGS = ['export-import', 'digital'];
 
 function validateInput(value: string, field: string): string | null {
   const v = value.trim();
@@ -76,12 +84,16 @@ export function Chatbot() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const mainOptions = [
     { label: 'Education', value: 'education', icon: GraduationCap },
     { label: 'Jobs', value: 'jobs', icon: Briefcase },
     { label: 'Skill Courses', value: 'skills', icon: Brain },
     { label: 'Collaboration', value: 'collaboration', icon: Users },
+    { label: 'Export–Import', value: 'export-import', icon: Ship },
+    { label: 'Digital Services', value: 'digital', icon: Code2 },
   ];
 
   const [dynamicOptions, setDynamicOptions] = useState(mainOptions);
@@ -91,6 +103,27 @@ export function Chatbot() {
     window.addEventListener('openChatbot', handleOpen);
     return () => window.removeEventListener('openChatbot', handleOpen);
   }, []);
+
+  // A11y: Esc closes the dialog, focus moves into it on open and returns to the opener on close
+  useEffect(() => {
+    if (!isOpen) return;
+    const previouslyFocused = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+
+    // Pointer-coarse (touch) devices: focus the dialog itself so the on-screen keyboard
+    // doesn't cover the quick replies. Everyone else gets the text input.
+    const isTouch = typeof window.matchMedia === 'function' && window.matchMedia('(pointer: coarse)').matches;
+    const focusTarget = isTouch ? dialogRef.current : inputRef.current;
+    focusTarget?.focus({ preventScroll: true });
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setIsOpen(false);
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => {
+      window.removeEventListener('keydown', onKeyDown);
+      previouslyFocused?.focus?.({ preventScroll: true });
+    };
+  }, [isOpen]);
 
   // Prevent scroll when chatbot is open
   useEffect(() => {
@@ -113,7 +146,7 @@ export function Chatbot() {
       } else {
         const initialMsg: ChatMessage = {
           type: 'bot',
-          text: 'Hi,\nI’m GlofiHub AI Assistant.\nTell me what you’re looking for:',
+          text: INTRO_TEXT,
           timestamp: Date.now()
         };
         setMessages([initialMsg]);
@@ -161,9 +194,36 @@ export function Chatbot() {
     }, 1000);
   };
 
+  // Export–Import / Digital: short intro from DIVISIONS, never enters the multi-step flows.
+  const showDivision = async (slug: string) => {
+    const division = DIVISIONS.find(d => d.slug === slug);
+    if (!division) return;
+
+    // Make sure no flow state is left behind (e.g. a stale persisted flow after a reload).
+    setCurrentFlow(null);
+    setFlowStep(0);
+    setCollectedData({});
+    await chatDB.saveUserData('currentFlow', null);
+    await chatDB.saveUserData('flowStep', 0);
+    await chatDB.saveUserData('collectedData', {});
+
+    const soonNote = division.status === 'soon'
+      ? '\n\nThis business is launching soon — message us to register your interest.'
+      : '';
+    askNext(`Here's a quick look at ${division.name}:\n\n${division.description}${soonNote}\n\nWould you like to talk to our team?`, [
+      { label: 'Connect on WhatsApp', value: `whatsapp:${division.slug}`, icon: MessageCircle },
+      { label: 'Restart', value: 'restart', icon: RotateCcw }
+    ]);
+  };
+
   const handleOption = async (label: string, value: string) => {
     await addMessage('user', label);
     setDynamicOptions([]);
+
+    if (DIVISION_OPTION_SLUGS.includes(value)) {
+      await showDivision(value);
+      return;
+    }
 
     const newData = { ...collectedData, [currentFlow || 'initial']: value };
     setCollectedData(newData);
@@ -409,7 +469,7 @@ export function Chatbot() {
     const greetings = ['hi', 'hello', 'hey', 'hii', 'helloo', 'good morning', 'good afternoon', 'good evening', 'namaste'];
 
     if (greetings.some(g => lowerInput === g || lowerInput.startsWith(g + ' '))) {
-      await addMessage('bot', `Hello! 👋 I'm your GlofiHub Assistant. How can I help you today? Please select an option below:`);
+      await addMessage('bot', `Hello! 👋 I'm the GlofiHub AI Assistant. How can I help you today? Please select an option below:`);
       setDynamicOptions(mainOptions);
       setCurrentFlow(null);
       setFlowStep(0);
@@ -420,6 +480,19 @@ export function Chatbot() {
 
     // Keyword based flow starting
     if (!currentFlow) {
+      // Group businesses first (whole-word matches, so "apply" never matches "app").
+      // Skipped when the text is clearly about jobs / courses so those keep routing as before.
+      const isCareerOrCourse = /job|placement|course|learn|skill/.test(lowerInput);
+      if (!isCareerOrCourse) {
+        if (/\b(export|exports|exporting|import|imports|importing|trade|trading)\b/.test(lowerInput)) {
+          handleOption('Export–Import', 'export-import');
+          return;
+        }
+        if (/\b(website|websites|app|apps|marketing|seo)\b/.test(lowerInput)) {
+          handleOption('Digital Services', 'digital');
+          return;
+        }
+      }
       if (lowerInput.includes('job') || lowerInput.includes('work') || lowerInput.includes('placement')) {
         handleOption('Jobs', 'jobs');
         return;
@@ -432,6 +505,11 @@ export function Chatbot() {
         handleOption('Skill Courses', 'skills');
         return;
       }
+
+      // No flow is active and nothing matched: point to the menu rather than feeding
+      // free text into the step engine (which assumes a flow is running).
+      askNext('I can help with Education, Jobs, Skill Courses, Collaboration, Export–Import or Digital Services. Please pick an option:', mainOptions);
+      return;
     }
 
     // Determine what was just answered based on flowStep
@@ -577,7 +655,7 @@ export function Chatbot() {
     setCollectedData({});
     const initialMsg: ChatMessage = {
       type: 'bot',
-      text: 'Hi,\nI’m GlofiHub AI Assistant.\nTell me what you’re looking for:',
+      text: INTRO_TEXT,
       timestamp: Date.now()
     };
     setMessages([initialMsg]);
@@ -586,18 +664,26 @@ export function Chatbot() {
     setUserInput('');
   };
 
-  const handleWhatsApp = () => {
-    let message = `Hi GlofiHub, I have completed the consultation flow on your website.\n\n`;
-    message += `Flow: ${currentFlow}\n`;
-    Object.entries(collectedData).forEach(([key, val]) => {
-      if (key !== 'initial' && !key.startsWith('input_')) {
-        message += `${key.charAt(0).toUpperCase() + key.slice(1)}: ${val}\n`;
-      }
-    });
+  // `divisionSlug` is set for the Export–Import / Digital quick replies (no flow data to send).
+  const handleWhatsApp = (divisionSlug?: string) => {
+    const division = divisionSlug ? DIVISIONS.find(d => d.slug === divisionSlug) : undefined;
+    let message: string;
 
-    message += `\nNote: Kindly attach your resume here.`;
+    if (division) {
+      message = `Hi GlofiHub, I'm interested in ${division.name}. I found it on your website and would like to know more.`;
+    } else {
+      message = `Hi GlofiHub, I have completed the consultation flow on your website.\n\n`;
+      message += `Flow: ${currentFlow}\n`;
+      Object.entries(collectedData).forEach(([key, val]) => {
+        if (key !== 'initial' && !key.startsWith('input_')) {
+          message += `${key.charAt(0).toUpperCase() + key.slice(1)}: ${val}\n`;
+        }
+      });
 
-    window.open(`https://wa.me/919241168875?text=${encodeURIComponent(message)}`, '_blank');
+      message += `\nNote: Kindly attach your resume here.`;
+    }
+
+    window.open(`https://wa.me/${SITE.whatsapp}?text=${encodeURIComponent(message)}`, '_blank', 'noopener,noreferrer');
   };
 
 
@@ -620,8 +706,10 @@ export function Chatbot() {
         )}
         <button
           onClick={() => setIsOpen(!isOpen)}
-          className="relative w-16 h-16 rounded-full bg-gradient-to-br from-primary to-accent text-white shadow-xl shadow-primary/30 hover:shadow-2xl hover:shadow-primary/50 hover:scale-105 transition-all duration-300 flex items-center justify-center cursor-pointer active:scale-95"
+          className="relative w-16 h-16 rounded-full bg-gradient-to-br from-primary to-accent text-white shadow-xl shadow-primary/30 hover:shadow-2xl hover:shadow-primary/50 hover:scale-105 transition-all duration-300 flex items-center justify-center cursor-pointer active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
           aria-label={isOpen ? 'Close chat' : 'Open chat'}
+          aria-haspopup="dialog"
+          aria-expanded={isOpen}
           type="button"
         >
           {/* Ripple rings (only when closed) */}
@@ -643,6 +731,7 @@ export function Chatbot() {
       {/* ── Backdrop ──────────────────────────────────────── */}
       {isOpen && (
         <div
+          aria-hidden="true"
           className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[45] animate-in fade-in duration-300"
           onClick={() => setIsOpen(false)}
         />
@@ -650,7 +739,14 @@ export function Chatbot() {
 
       {/* ── Chat window ───────────────────────────────────── */}
       {isOpen && (
-        <div className={`${chatWindowClass} bg-card shadow-2xl border border-foreground/10 flex flex-col overflow-hidden animate-in fade-in zoom-in-95 slide-in-from-bottom-4 duration-300`}>
+        <div
+          ref={dialogRef}
+          role="dialog"
+          aria-modal="true"
+          aria-label="GlofiHub AI chat"
+          tabIndex={-1}
+          className={`${chatWindowClass} bg-card shadow-2xl border border-foreground/10 flex flex-col overflow-hidden animate-in fade-in zoom-in-95 slide-in-from-bottom-4 duration-300 focus:outline-none`}
+        >
           {/* Header */}
           <div className="relative bg-gradient-to-r from-primary via-primary to-accent text-white px-5 py-4 flex items-center justify-between overflow-hidden">
             <span aria-hidden className="pointer-events-none absolute -top-10 -right-6 w-32 h-32 rounded-full bg-white/10 blur-2xl" />
@@ -668,20 +764,20 @@ export function Chatbot() {
               </div>
             </div>
             <div className="relative flex items-center gap-0.5">
-              <button onClick={handleReset} className="p-2 hover:bg-white/20 rounded-xl transition text-white cursor-pointer" title="Reset chat">
-                <RotateCcw size={17} />
+              <button type="button" onClick={handleReset} className="p-2 hover:bg-white/20 rounded-xl transition text-white cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70" title="Reset chat" aria-label="Reset chat">
+                <RotateCcw size={17} aria-hidden="true" />
               </button>
-              <button onClick={() => setIsMaximized(!isMaximized)} className="hidden sm:inline-flex p-2 hover:bg-white/20 rounded-xl transition text-white cursor-pointer" title={isMaximized ? 'Minimize' : 'Maximize'}>
-                {isMaximized ? <Minimize2 size={17} /> : <Maximize2 size={17} />}
+              <button type="button" onClick={() => setIsMaximized(!isMaximized)} className="hidden sm:inline-flex p-2 hover:bg-white/20 rounded-xl transition text-white cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70" title={isMaximized ? 'Minimize' : 'Maximize'} aria-label={isMaximized ? 'Minimize chat window' : 'Maximize chat window'}>
+                {isMaximized ? <Minimize2 size={17} aria-hidden="true" /> : <Maximize2 size={17} aria-hidden="true" />}
               </button>
-              <button onClick={() => setIsOpen(false)} className="p-2 hover:bg-white/20 rounded-xl transition text-white cursor-pointer" title="Close">
-                <X size={17} />
+              <button type="button" onClick={() => setIsOpen(false)} className="p-2 hover:bg-white/20 rounded-xl transition text-white cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70" title="Close" aria-label="Close chat">
+                <X size={17} aria-hidden="true" />
               </button>
             </div>
           </div>
 
           {/* Messages */}
-          <div ref={scrollAreaRef} className="flex-1 overflow-y-auto px-4 py-5 space-y-4 bg-muted/20">
+          <div ref={scrollAreaRef} aria-live="polite" aria-label="Chat messages" className="flex-1 overflow-y-auto px-4 py-5 space-y-4 bg-muted/20">
             <div className={`${isMaximized ? 'max-w-2xl mx-auto w-full space-y-4' : ''}`}>
               {messages.map((msg, i) => (
                 msg.type === 'bot' ? (
@@ -711,6 +807,7 @@ export function Chatbot() {
                     <img src="/logo/logo.png" alt="" className="w-full h-full object-cover" />
                   </div>
                   <div className="bg-card border border-foreground/10 px-4 py-3 rounded-2xl rounded-bl-md shadow-sm flex gap-1 items-center">
+                    <span className="sr-only">GlofiHub AI is typing</span>
                     <div className="w-1.5 h-1.5 bg-primary/50 rounded-full animate-bounce [animation-delay:-0.3s]" />
                     <div className="w-1.5 h-1.5 bg-primary/50 rounded-full animate-bounce [animation-delay:-0.15s]" />
                     <div className="w-1.5 h-1.5 bg-primary/50 rounded-full animate-bounce" />
@@ -728,12 +825,14 @@ export function Chatbot() {
                 {dynamicOptions.map((opt) => (
                   <button
                     key={opt.value}
+                    type="button"
                     onClick={() => {
                       if (opt.value === 'whatsapp') handleWhatsApp();
+                      else if (opt.value.startsWith('whatsapp:')) handleWhatsApp(opt.value.slice('whatsapp:'.length));
                       else if (opt.value === 'restart') handleReset();
                       else handleOption(opt.label, opt.value);
                     }}
-                    className="group/opt text-xs font-semibold px-4 py-2.5 rounded-full bg-card border border-foreground/15 text-foreground hover:border-primary hover:bg-primary hover:text-white transition-all duration-200 active:scale-95 flex items-center gap-2 shadow-sm cursor-pointer"
+                    className="group/opt text-xs font-semibold px-4 py-2.5 rounded-full bg-card border border-foreground/15 text-foreground hover:border-primary hover:bg-primary hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-card transition-all duration-200 active:scale-95 flex items-center gap-2 shadow-sm cursor-pointer"
                   >
                     {opt.icon && <opt.icon size={14} className="text-primary group-hover/opt:text-white transition-colors" />}
                     {opt.label}
@@ -744,7 +843,9 @@ export function Chatbot() {
 
             <form onSubmit={handleSubmit} className={`flex gap-2 ${isMaximized ? 'max-w-2xl mx-auto w-full' : ''}`}>
               <input
+                ref={inputRef}
                 type="text"
+                aria-label="Type your message"
                 value={userInput}
                 onChange={(e) => setUserInput(e.target.value)}
                 placeholder="Type your message…"
@@ -753,10 +854,10 @@ export function Chatbot() {
               <button
                 type="submit"
                 disabled={!userInput.trim()}
-                className="w-11 h-11 flex items-center justify-center bg-gradient-to-br from-primary to-accent text-white rounded-full hover:shadow-lg hover:shadow-primary/30 hover:scale-105 transition-all active:scale-95 disabled:opacity-40 disabled:hover:scale-100 disabled:cursor-not-allowed cursor-pointer shrink-0"
+                className="w-11 h-11 flex items-center justify-center bg-gradient-to-br from-primary to-accent text-white rounded-full hover:shadow-lg hover:shadow-primary/30 hover:scale-105 transition-all active:scale-95 disabled:opacity-40 disabled:hover:scale-100 disabled:cursor-not-allowed cursor-pointer shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-card"
                 aria-label="Send message"
               >
-                <Send size={17} />
+                <Send size={17} aria-hidden="true" />
               </button>
             </form>
 

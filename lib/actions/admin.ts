@@ -6,7 +6,7 @@ import { sql, one } from '@/lib/pg';
 import { requireRole } from '@/lib/auth';
 import { logActivity, notify } from '@/lib/activity';
 import { counsellorSchema, assignSchema, statusSchema, minutesSchema } from '@/lib/validations';
-import { getOrCreateConversation } from '@/lib/actions/chat';
+import { getOrCreateConversation } from '@/lib/conversations';
 
 type Result = { ok: boolean; error?: string };
 
