@@ -6,6 +6,7 @@ import { ScrollReveal } from '@/components/ScrollReveal'
 import { GetStartedModal } from '@/components/GetStartedModal'
 import { StudentForm } from '@/components/StudentForm'
 import { SITE } from '@/lib/site'
+import { DIVISIONS } from '@/lib/divisions'
 
 const sora = Sora({
   subsets: ['latin'],
@@ -45,7 +46,7 @@ export const metadata: Metadata = {
   authors: [{ name: SITE.name, url: SITE.url }],
   creator: SITE.name,
   publisher: SITE.name,
-  category: 'education',
+  category: 'business',
   alternates: {
     canonical: '/',
   },
@@ -92,14 +93,36 @@ export const metadata: Metadata = {
   // verification: { google: 'xxxx' },
 }
 
+const ORG_ID = `${SITE.url}/#organization`
+
+// schema.org type per business (by DIVISIONS slug); anything new falls back to a plain Organization.
+const DIVISION_SCHEMA_TYPE: Record<string, string> = {
+  education: 'EducationalOrganization',
+  academy: 'EducationalOrganization',
+  'export-import': 'Organization',
+  digital: 'ProfessionalService',
+}
+
+// Plain data only — DIVISIONS carries icon components that must not reach JSON.stringify.
+const subOrganizations = DIVISIONS.map((d) => ({
+  '@type': DIVISION_SCHEMA_TYPE[d.slug] ?? 'Organization',
+  '@id': `${SITE.url}/#division-${d.slug}`,
+  name: d.name,
+  description: d.description,
+  slogan: d.tagline,
+  url: d.href.startsWith('/') ? `${SITE.url}${d.href}` : d.href,
+  parentOrganization: { '@id': ORG_ID },
+}))
+
 const jsonLd = {
   '@context': 'https://schema.org',
   '@graph': [
     {
-      '@type': 'EducationalOrganization',
-      '@id': `${SITE.url}/#organization`,
+      '@type': 'Organization',
+      '@id': ORG_ID,
       name: SITE.name,
       legalName: SITE.legalName,
+      slogan: SITE.tagline,
       url: SITE.url,
       logo: `${SITE.url}/logo/logo.png`,
       image: `${SITE.url}${SITE.ogImage}`,
@@ -107,6 +130,7 @@ const jsonLd = {
       email: SITE.email,
       telephone: SITE.phone,
       sameAs: Object.values(SITE.social),
+      subOrganization: subOrganizations,
       contactPoint: {
         '@type': 'ContactPoint',
         telephone: SITE.phone,
@@ -123,7 +147,7 @@ const jsonLd = {
       url: SITE.url,
       name: SITE.name,
       description: SITE.description,
-      publisher: { '@id': `${SITE.url}/#organization` },
+      publisher: { '@id': ORG_ID },
       inLanguage: 'en-IN',
     },
   ],
