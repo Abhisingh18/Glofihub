@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import Link from 'next/link';
+import { CounsellingLink } from '@/components/counselling/CounsellingLink';
 import { ArrowLeft, GraduationCap, MessagesSquare, ShieldCheck, BadgeCheck, Globe, Sparkles } from 'lucide-react';
 
 const HIGHLIGHTS = [
@@ -43,12 +43,12 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
 
         {/* Logo */}
         <div className="relative" data-reveal>
-          <Link href="/counselling" className="inline-flex items-center gap-2.5 group">
+          <CounsellingLink className="inline-flex items-center gap-2.5 group">
             <span className="w-10 h-10 rounded-xl bg-white/15 ring-2 ring-white/25 flex items-center justify-center group-hover:scale-105 transition-transform">
               <GraduationCap size={20} />
             </span>
             <span className="font-display font-bold text-lg">GlofiHub</span>
-          </Link>
+          </CounsellingLink>
         </div>
 
         {/* Copy */}
@@ -100,9 +100,9 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
         <div aria-hidden className="lg:hidden pointer-events-none absolute -top-20 -right-16 w-72 h-72 rounded-full bg-primary/10 blur-3xl animate-aurora" />
         <div aria-hidden className="pointer-events-none absolute bottom-0 -left-16 w-72 h-72 rounded-full bg-emerald-500/5 blur-3xl" />
 
-        <Link href="/counselling" className="relative inline-flex items-center gap-2 text-foreground/55 hover:text-foreground text-sm font-medium transition-colors w-fit">
+        <CounsellingLink className="relative inline-flex items-center gap-2 text-foreground/55 hover:text-foreground text-sm font-medium transition-colors w-fit">
           <ArrowLeft size={16} className="transition-transform hover:-translate-x-0.5" /> Back to GlofiHub Counselling
-        </Link>
+        </CounsellingLink>
 
         <div className="flex-1 flex items-center justify-center">
           <div className="w-full max-w-md py-8 animate-hero-rise">
