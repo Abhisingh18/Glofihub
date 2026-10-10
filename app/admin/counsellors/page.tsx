@@ -6,7 +6,7 @@ export default async function AdminCounsellors() {
   const counsellors = await getCounsellors();
   return (
     <>
-      <PageHeader title="Counsellors" subtitle={`${counsellors.length} total`} />
+      <PageHeader title="Staff" subtitle={`${counsellors.length} staff member${counsellors.length === 1 ? '' : 's'} — create accounts, review activity, reset passwords`} />
       <CounsellorsManager counsellors={counsellors} />
     </>
   );
