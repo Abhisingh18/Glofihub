@@ -1,4 +1,4 @@
-import { BookOpen, Briefcase, Code2, Compass, GraduationCap, Globe, Handshake, type LucideIcon } from 'lucide-react';
+import { BookOpen, Briefcase, Code2, Compass, GraduationCap, Globe, Handshake, Ship, type LucideIcon } from 'lucide-react';
 
 /**
  * The GlofiHub ecosystem's verticals — single source of truth for the home-page
@@ -52,7 +52,7 @@ export const DIVISIONS: Division[] = [
     highlights: ['Medical', 'Technology', 'Management & other programs'],
     categories: ['Medical', 'Technology', 'Management', 'Other Programs'],
     cta: 'Explore Education',
-    href: '/#service-education',
+    href: '/counselling',
     status: 'live',
     icon: GraduationCap,
     iconBg: 'bg-gradient-to-br from-blue-500 to-blue-600',
@@ -153,6 +153,22 @@ export const DIVISIONS: Division[] = [
     iconBg: 'bg-gradient-to-br from-indigo-500 to-violet-600',
     glow: 'group-hover:shadow-indigo-500/25',
     spot: 'rgba(99,102,241,0.18)',
+  },
+  {
+    slug: 'import-export',
+    name: 'GlofiHub Import-Export',
+    short: 'Import-Export',
+    tagline: 'Global trade support',
+    description: 'Connecting businesses with international markets through import and export services.',
+    highlights: ['Import', 'Export', 'Trade documentation & logistics'],
+    categories: ['Import', 'Export', 'Trade Documentation', 'Logistics Support'],
+    cta: 'Explore Import-Export',
+    href: '/import-export',
+    status: 'soon',
+    icon: Ship,
+    iconBg: 'bg-gradient-to-br from-sky-500 to-blue-700',
+    glow: 'group-hover:shadow-sky-500/25',
+    spot: 'rgba(14,165,233,0.18)',
   },
   {
     slug: 'global-opportunities',

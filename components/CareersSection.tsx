@@ -113,7 +113,7 @@ export function CareersSection() {
               />
             </button>
             <a
-              href="#service-jobs"
+              href="/counselling#service-jobs"
               className={`inline-flex min-h-[44px] items-center justify-center rounded-full px-2 text-sm font-semibold text-primary underline-offset-4 hover:underline dark:text-accent ${FOCUS_RING}`}
             >
               See placement support details
