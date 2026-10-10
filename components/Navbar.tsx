@@ -6,6 +6,7 @@ import {
   useEffect,
   useRef,
   useCallback,
+  useSyncExternalStore,
   type PointerEvent as ReactPointerEvent,
   type KeyboardEvent as ReactKeyboardEvent,
   type FocusEvent as ReactFocusEvent,
@@ -15,9 +16,15 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Menu, X, Moon, Sun, Phone, Mail, Sparkles, ArrowRight, ChevronDown } from 'lucide-react';
 import { ThemeContext } from './ThemeProvider';
-import { DIVISIONS } from '@/lib/divisions';
+import { DIVISIONS, PRIMARY_DIVISIONS, type Division } from '@/lib/divisions';
 import { SITE } from '@/lib/site';
 
+/**
+ * Navbar of the GlofiHub parent site (the five business websites have their own: components/site).
+ *   xl (>=1280)  Home | the five websites inline | More ▾ (all nine businesses) | About | Contact | Get Started
+ *   lg (>=1024)  Home | Ecosystem ▾ (the same menu)                             | About | Contact | Get Started
+ *   < lg         hamburger panel with a "Businesses" accordion listing all nine (websites first)
+ */
 interface NavItem {
   key: string;
   label: string;
@@ -28,14 +35,23 @@ interface NavItem {
 const HOME: NavItem = { key: 'home', label: 'Home', href: '/#home' };
 const ABOUT: NavItem = { key: 'about', label: 'About', href: '/about' };
 const CONTACT: NavItem = { key: 'contact', label: 'Contact', href: '/#contact' };
-const VERTICALS: NavItem[] = DIVISIONS.map((d) => ({
+
+/** The five businesses that have a website of their own — inline links from xl. */
+const SITE_ITEMS: NavItem[] = PRIMARY_DIVISIONS.map((d) => ({
   key: d.slug,
   label: d.short,
   href: d.href,
   soon: d.status === 'soon',
 }));
-/** Full inline set (xl and up). */
-const FULL_ITEMS: NavItem[] = [HOME, ...VERTICALS, ABOUT, CONTACT];
+
+/** The rest of the group: sections on the parent site and "launching soon" pages. */
+const OTHER_DIVISIONS: Division[] = DIVISIONS.filter((d) => !d.primary);
+
+/** Menu groups (desktop mega-menu + mobile accordion) — together they list every business, websites first. */
+const MENU_GROUPS: { id: string; label: string; items: Division[] }[] = [
+  { id: 'nav-group-sites', label: 'GlofiHub websites', items: PRIMARY_DIVISIONS },
+  { id: 'nav-group-more', label: 'More from GlofiHub', items: OTHER_DIVISIONS },
+];
 
 /** Home-page section ids observed by the scroll-spy. Ones without a nav link just clear the highlight. */
 const SPY_IDS = [
@@ -68,12 +84,29 @@ const RING =
 const RING_INSET =
   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent/70';
 
+/** Horizontal padding of the desktop nav items (2xl is tighter: that is where the "Soon" pills appear). */
+const NAV_PAD = 'px-3 2xl:px-2.5';
+
 const getLinks = (root: HTMLElement | null): HTMLElement[] =>
   root ? Array.from(root.querySelectorAll<HTMLElement>('a[href]')) : [];
 
 const isHashHref = (href: string) => href.startsWith('/#');
 
-/** "Soon" marker for verticals that haven't launched. `compact` = dot until 2xl, pill from 2xl. */
+const currentFor = (href: string, isActive: boolean) =>
+  isActive ? (isHashHref(href) ? ('location' as const) : ('page' as const)) : undefined;
+
+// xl breakpoint as an external store: only used to decide which businesses light up the menu trigger,
+// so the server snapshot (false) costs nothing on hydration.
+const XL_QUERY = '(min-width: 1280px)';
+const subscribeXl = (onChange: () => void) => {
+  const mq = window.matchMedia(XL_QUERY);
+  mq.addEventListener('change', onChange);
+  return () => mq.removeEventListener('change', onChange);
+};
+const getXl = () => window.matchMedia(XL_QUERY).matches;
+const getXlServer = () => false;
+
+/** "Soon" marker for businesses that haven't launched. `compact` = dot until 2xl, pill from 2xl. */
 function SoonBadge({ compact = false }: { compact?: boolean }) {
   return (
     <>
@@ -102,12 +135,13 @@ function SoonBadge({ compact = false }: { compact?: boolean }) {
 
 export function Navbar() {
   const [isOpen, setIsOpen] = useState(false); // mobile panel
-  const [mobileEco, setMobileEco] = useState(false); // mobile "Ecosystem" accordion
-  const [ecoOpen, setEcoOpen] = useState(false); // lg "Ecosystem" mega-menu
+  const [mobileBiz, setMobileBiz] = useState(false); // mobile "Businesses" accordion
+  const [ecoOpen, setEcoOpen] = useState(false); // desktop mega-menu ("More" at xl, "Ecosystem" at lg)
   const [scrolled, setScrolled] = useState(false);
   const [active, setActive] = useState<string>('');
   const { isDark, setIsDark } = useContext(ThemeContext);
   const pathname = usePathname();
+  const isXl = useSyncExternalStore(subscribeXl, getXl, getXlServer);
 
   // Close every menu when the route changes (adjust-state-during-render pattern).
   const [prevPath, setPrevPath] = useState(pathname);
@@ -115,7 +149,7 @@ export function Navbar() {
     setPrevPath(pathname);
     setIsOpen(false);
     setEcoOpen(false);
-    setMobileEco(false);
+    setMobileBiz(false);
   }
 
   // Mega-menu plumbing
@@ -133,13 +167,20 @@ export function Navbar() {
 
   const toggleTheme = () => setIsDark(!isDark);
 
-  // Hash links follow the scroll-spy (home only); route links follow the pathname.
+  // Hash links follow the scroll-spy (home only); route links follow the pathname (subpaths count).
   const isHrefActive = (href: string) =>
     isHashHref(href)
       ? pathname === '/' && active === href.slice(2)
       : pathname === href || pathname.startsWith(`${href}/`);
   const isItemActive = (item: NavItem) => isHrefActive(item.href);
-  const ecoActive = active === 'businesses' && pathname === '/' ? true : VERTICALS.some(isItemActive);
+
+  // The menu trigger lights up for what it holds: the four "more" businesses and the #businesses section,
+  // plus the five websites below xl (there they are only reachable through the menu).
+  const menuActive =
+    (pathname === '/' && active === 'businesses') ||
+    OTHER_DIVISIONS.some((d) => isHrefActive(d.href)) ||
+    (!isXl && PRIMARY_DIVISIONS.some((d) => isHrefActive(d.href)));
+  const ecoLit = menuActive || ecoOpen;
 
   const closeMobile = () => setIsOpen(false);
 
@@ -203,15 +244,28 @@ export function Navbar() {
     }
   };
 
+  // Up / Down / Home / End walk the links in DOM order (websites column, then the rest, then the footer link);
+  // Left / Right hop between the two columns, keeping the row where possible.
   const onEcoPanelKeyDown = (e: ReactKeyboardEvent<HTMLDivElement>) => {
     const items = getLinks(ecoPanelRef.current);
     if (items.length === 0) return;
-    const i = items.indexOf(document.activeElement as HTMLElement);
+    const current = document.activeElement as HTMLElement | null;
+    const i = current ? items.indexOf(current) : -1;
     let next = -1;
     if (e.key === 'ArrowDown') next = (i + 1) % items.length;
     else if (e.key === 'ArrowUp') next = i <= 0 ? items.length - 1 : i - 1;
     else if (e.key === 'Home') next = 0;
     else if (e.key === 'End') next = items.length - 1;
+    else if ((e.key === 'ArrowRight' || e.key === 'ArrowLeft') && current?.dataset.ecoCol !== undefined) {
+      const col = Number(current.dataset.ecoCol);
+      const inCol = (c: number) => items.filter((el) => el.dataset.ecoCol === String(c));
+      const target = inCol(e.key === 'ArrowRight' ? col + 1 : col - 1);
+      if (target.length > 0) {
+        e.preventDefault();
+        target[Math.min(inCol(col).indexOf(current), target.length - 1)]?.focus();
+      }
+      return;
+    }
     if (next >= 0) {
       e.preventDefault();
       items[next]?.focus();
@@ -275,20 +329,16 @@ export function Navbar() {
   // Don't leave a pending hover timer behind on unmount.
   useEffect(() => clearEcoTimer, [clearEcoTimer]);
 
-  // Crossing breakpoints swaps menus — reset so nothing stays locked / stuck open.
+  // Crossing lg swaps the desktop nav and the hamburger panel — reset so nothing stays locked / stuck open.
+  // (The mega-menu is the same element at lg and xl, so crossing xl needs no reset.)
   useEffect(() => {
     const lg = window.matchMedia('(min-width: 1024px)');
-    const xl = window.matchMedia('(min-width: 1280px)');
     const onChange = () => {
       if (lg.matches) setIsOpen(false);
-      if (!lg.matches || xl.matches) closeEco(); // the mega-menu only exists between lg and xl
+      else closeEco();
     };
     lg.addEventListener('change', onChange);
-    xl.addEventListener('change', onChange);
-    return () => {
-      lg.removeEventListener('change', onChange);
-      xl.removeEventListener('change', onChange);
-    };
+    return () => lg.removeEventListener('change', onChange);
   }, [closeEco]);
 
   // Glass-shrink after a bit of scroll
@@ -340,17 +390,56 @@ export function Navbar() {
     };
   }, [isOpen]);
 
-  const desktopItemClass = (isActive: boolean, pad: string) =>
-    `relative flex items-center gap-1.5 whitespace-nowrap rounded-lg ${pad} py-2 text-[12.5px] font-semibold tracking-normal transition-colors duration-200 ${RING} ${
+  const desktopItemClass = (isActive: boolean) =>
+    `relative flex items-center gap-1.5 whitespace-nowrap rounded-lg ${NAV_PAD} py-2 text-[12.5px] font-semibold tracking-normal transition-colors duration-200 ${RING} ${
       isActive
         ? 'bg-primary/10 text-primary dark:bg-accent/15 dark:text-accent'
         : 'text-foreground/70 hover:bg-foreground/5 hover:text-foreground'
     }`;
 
-  const ariaCurrent = (item: NavItem, isActive: boolean) =>
-    isActive ? (isHashHref(item.href) ? ('location' as const) : ('page' as const)) : undefined;
+  const ariaCurrent = (item: NavItem, isActive: boolean) => currentFor(item.href, isActive);
 
-  const ecoLit = ecoActive || ecoOpen;
+  const groupLabelClass =
+    'px-3 pb-1.5 pt-2.5 text-[10px] font-bold uppercase tracking-[0.2em] text-foreground/45';
+
+  /** One business in the desktop mega-menu: icon tile, name, tagline, "Soon" badge. `col` drives Left/Right. */
+  const renderMenuItem = (d: Division, col: number) => {
+    const Icon = d.icon;
+    const isActive = isHrefActive(d.href);
+    return (
+      <li key={d.slug}>
+        <Link
+          href={d.href}
+          data-eco-col={col}
+          onClick={() => closeEco()}
+          aria-current={currentFor(d.href, isActive)}
+          className={`group flex items-center gap-3 rounded-xl p-2.5 transition-colors duration-200 hover:bg-foreground/5 ${RING_INSET} ${
+            isActive ? 'bg-primary/8' : ''
+          }`}
+        >
+          <span
+            className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-white shadow-md transition-all duration-300 group-hover:scale-105 motion-reduce:transition-none ${d.iconBg} ${d.glow}`}
+          >
+            <Icon size={20} aria-hidden="true" />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="flex items-center gap-2">
+              <span className="truncate font-display text-sm font-bold tracking-tight text-foreground">
+                {d.short}
+              </span>
+              {d.status === 'soon' && <SoonBadge />}
+            </span>
+            <span className="mt-0.5 block text-xs leading-snug text-foreground/60">{d.tagline}</span>
+          </span>
+          <ArrowRight
+            size={14}
+            aria-hidden="true"
+            className="shrink-0 -translate-x-1 text-foreground/40 opacity-0 transition-all duration-200 group-hover:translate-x-0 group-hover:opacity-100 group-focus-visible:translate-x-0 group-focus-visible:opacity-100 motion-reduce:transition-none"
+          />
+        </Link>
+      </li>
+    );
+  };
 
   return (
     <header className="fixed top-0 inset-x-0 z-50 px-3 sm:px-4 pointer-events-none">
@@ -398,145 +487,106 @@ export function Navbar() {
           </div>
         </Link>
 
-        {/* Desktop navigation: full inline set at xl, compact set + Ecosystem menu at lg */}
+        {/* Desktop navigation (lg and up) — one row; the five websites only appear from xl */}
         <nav aria-label="Primary" className="relative hidden min-w-0 self-stretch lg:flex">
-          {/* xl and up — all ten links inline */}
-          <div className="hidden items-center gap-0.5 xl:flex">
-            {FULL_ITEMS.map((item) => {
-              const isActive = isItemActive(item);
-              return (
-                <Link
-                  key={item.key}
-                  href={item.href}
-                  aria-current={ariaCurrent(item, isActive)}
-                  className={desktopItemClass(isActive, 'px-2')}
-                >
-                  {item.label}
-                  {item.soon && <SoonBadge compact />}
-                </Link>
-              );
-            })}
-          </div>
-
-          {/* lg only — Home | Ecosystem ▾ | About | Contact */}
-          <div className="flex items-center gap-0.5 xl:hidden">
+          <div className="flex items-center gap-0.5">
             <Link
               href={HOME.href}
               aria-current={ariaCurrent(HOME, isItemActive(HOME))}
-              className={desktopItemClass(isItemActive(HOME), 'px-3')}
+              className={desktopItemClass(isItemActive(HOME))}
             >
               {HOME.label}
             </Link>
 
+            {/* xl and up — the five businesses that have their own website */}
+            <div className="hidden items-center gap-0.5 xl:flex">
+              {SITE_ITEMS.map((item) => {
+                const isActive = isItemActive(item);
+                return (
+                  <Link
+                    key={item.key}
+                    href={item.href}
+                    aria-current={ariaCurrent(item, isActive)}
+                    className={desktopItemClass(isActive)}
+                  >
+                    {item.label}
+                    {item.soon && <SoonBadge compact />}
+                  </Link>
+                );
+              })}
+            </div>
+
+            {/* "More ▾" at xl / "Ecosystem ▾" at lg — the same mega-menu listing all nine businesses */}
             <div
               ref={ecoWrapRef}
               onPointerEnter={onEcoPointerEnter}
               onPointerLeave={onEcoPointerLeave}
               onBlur={onEcoBlur}
-              className="flex items-center self-stretch"
+              className="relative flex items-center self-stretch"
             >
-              {/* Plain link = fallback behaviour and scroll-spy target (#businesses) */}
-              <Link
-                href="/#businesses"
-                onClick={() => closeEco()}
-                className={`${desktopItemClass(ecoLit, 'pl-3 pr-1')} rounded-r-none`}
-              >
-                Ecosystem
-              </Link>
               <button
                 ref={ecoBtnRef}
                 type="button"
                 onClick={onEcoButtonClick}
                 onKeyDown={onEcoButtonKeyDown}
-                aria-label="Ecosystem menu"
                 aria-haspopup="true"
                 aria-expanded={ecoOpen}
                 aria-controls="ecosystem-menu"
-                className={`flex items-center self-center rounded-r-lg py-2 pl-0.5 pr-2 cursor-pointer transition-colors duration-200 ${RING} ${
-                  ecoLit
-                    ? 'bg-primary/10 text-primary dark:bg-accent/15 dark:text-accent'
-                    : 'text-foreground/60 hover:bg-foreground/5 hover:text-foreground'
-                }`}
+                className={`${desktopItemClass(ecoLit)} cursor-pointer`}
               >
+                <span className="xl:hidden">Ecosystem</span>
+                <span className="hidden xl:inline">More</span>
+                <span className="sr-only">(all GlofiHub businesses)</span>
                 <ChevronDown
                   size={14}
                   aria-hidden="true"
-                  className={`transition-transform duration-300 motion-reduce:transition-none ${
+                  className={`shrink-0 transition-transform duration-300 motion-reduce:transition-none ${
                     ecoOpen ? 'rotate-180' : 'rotate-0'
                   }`}
                 />
               </button>
 
-              {/* Mega-menu — anchored to the nav, centred, capped to the viewport width */}
+              {/* Mega-menu — centred under the trigger, capped to the viewport width */}
               <div
                 id="ecosystem-menu"
                 ref={ecoPanelRef}
                 role="group"
-                aria-label="GlofiHub ecosystem"
+                aria-label="GlofiHub businesses"
                 inert={!ecoOpen}
                 onKeyDown={onEcoPanelKeyDown}
-                className={`absolute left-1/2 top-full z-20 -translate-x-1/2 w-[min(42rem,calc(100vw-2rem))] origin-top pt-2.5 transition-[opacity,transform,translate,scale] duration-200 ease-out motion-reduce:transition-none ${
+                className={`absolute left-1/2 top-full z-20 -translate-x-1/2 w-[min(44rem,calc(100vw-2rem))] origin-top pt-2.5 transition-[opacity,transform,translate,scale] duration-200 ease-out motion-reduce:transition-none ${
                   ecoOpen
                     ? 'pointer-events-auto translate-y-0 scale-100 opacity-100'
                     : 'pointer-events-none translate-y-2 scale-[0.98] opacity-0'
                 }`}
               >
-                <div className="relative overflow-hidden rounded-2xl border border-foreground/10 bg-card p-2 shadow-2xl shadow-black/15 dark:shadow-black/60">
+                <div className="relative max-h-[calc(100dvh-6.5rem)] overflow-y-auto overflow-x-hidden overscroll-contain rounded-2xl border border-foreground/10 bg-card p-2 shadow-2xl shadow-black/15 dark:shadow-black/60">
                   <span
                     aria-hidden="true"
                     className="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent"
                   />
-                  <p className="px-3 pb-1.5 pt-2 text-[10px] font-bold uppercase tracking-[0.2em] text-foreground/45">
-                    The GlofiHub ecosystem
-                  </p>
-                  <ul className="grid grid-cols-2 gap-1">
-                    {DIVISIONS.map((d) => {
-                      const Icon = d.icon;
-                      const isActive = isHrefActive(d.href);
-                      return (
-                        <li key={d.slug}>
-                          <Link
-                            href={d.href}
-                            onClick={() => closeEco()}
-                            aria-current={isActive ? (isHashHref(d.href) ? 'location' : 'page') : undefined}
-                            className={`group flex items-center gap-3 rounded-xl p-3 transition-colors duration-200 hover:bg-foreground/5 ${RING_INSET} ${
-                              isActive ? 'bg-primary/8' : ''
-                            }`}
-                          >
-                            <span
-                              className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-white shadow-md transition-all duration-300 group-hover:scale-105 motion-reduce:transition-none ${d.iconBg} ${d.glow}`}
-                            >
-                              <Icon size={20} aria-hidden="true" />
-                            </span>
-                            <span className="min-w-0 flex-1">
-                              <span className="flex items-center gap-2">
-                                <span className="truncate font-display text-sm font-bold tracking-tight text-foreground">
-                                  {d.short}
-                                </span>
-                                {d.status === 'soon' && <SoonBadge />}
-                              </span>
-                              <span className="mt-0.5 block text-xs leading-snug text-foreground/60">
-                                {d.tagline}
-                              </span>
-                            </span>
-                            <ArrowRight
-                              size={14}
-                              aria-hidden="true"
-                              className="shrink-0 -translate-x-1 text-foreground/40 opacity-0 transition-all duration-200 group-hover:translate-x-0 group-hover:opacity-100 group-focus-visible:translate-x-0 group-focus-visible:opacity-100 motion-reduce:transition-none"
-                            />
-                          </Link>
-                        </li>
-                      );
-                    })}
-                  </ul>
-                  <Link
-                    href="/#businesses"
-                    onClick={() => closeEco()}
-                    className={`mt-1 flex items-center justify-between rounded-xl border-t border-foreground/10 px-3 py-2.5 text-xs font-semibold text-primary transition-colors hover:bg-foreground/5 dark:text-accent ${RING_INSET}`}
-                  >
-                    Explore the ecosystem
-                    <ArrowRight size={14} aria-hidden="true" />
-                  </Link>
+                  <div className="grid grid-cols-2 gap-1">
+                    {MENU_GROUPS.map((group, col) => (
+                      <div key={group.id} className={`rounded-xl pb-1 ${col > 0 ? 'bg-foreground/[0.04]' : ''}`}>
+                        <p id={group.id} className={groupLabelClass}>
+                          {group.label}
+                        </p>
+                        <ul aria-labelledby={group.id} className="space-y-0.5">
+                          {group.items.map((d) => renderMenuItem(d, col))}
+                        </ul>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="mt-1 border-t border-foreground/10 pt-1">
+                    <Link
+                      href="/#businesses"
+                      onClick={() => closeEco()}
+                      className={`flex items-center justify-between rounded-xl px-3 py-2.5 text-xs font-semibold text-primary transition-colors hover:bg-foreground/5 dark:text-accent ${RING_INSET}`}
+                    >
+                      Explore all businesses
+                      <ArrowRight size={14} aria-hidden="true" />
+                    </Link>
+                  </div>
                 </div>
               </div>
             </div>
@@ -544,14 +594,14 @@ export function Navbar() {
             <Link
               href={ABOUT.href}
               aria-current={ariaCurrent(ABOUT, isItemActive(ABOUT))}
-              className={desktopItemClass(isItemActive(ABOUT), 'px-3')}
+              className={desktopItemClass(isItemActive(ABOUT))}
             >
               {ABOUT.label}
             </Link>
             <Link
               href={CONTACT.href}
               aria-current={ariaCurrent(CONTACT, isItemActive(CONTACT))}
-              className={desktopItemClass(isItemActive(CONTACT), 'px-3')}
+              className={desktopItemClass(isItemActive(CONTACT))}
             >
               {CONTACT.label}
             </Link>
@@ -571,11 +621,11 @@ export function Navbar() {
             </span>
           </button>
 
-          {/* Primary CTA (desktop) */}
+          {/* Primary CTA (desktop) — on the parent site this opens the business chooser */}
           <button
             type="button"
             onClick={() => window.dispatchEvent(new CustomEvent('openGetStarted'))}
-            className={`btn-shine hidden md:inline-flex items-center gap-2 whitespace-nowrap rounded-full bg-gradient-to-r from-primary to-accent text-white px-5 xl:px-4 2xl:px-5 py-2.5 text-[13px] font-semibold tracking-normal shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/40 hover:-translate-y-0.5 transition-all duration-300 cursor-pointer ${RING}`}
+            className={`btn-shine hidden md:inline-flex items-center gap-2 whitespace-nowrap rounded-full bg-gradient-to-r from-primary to-accent text-white px-5 py-2.5 text-[13px] font-semibold tracking-normal shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/40 hover:-translate-y-0.5 transition-all duration-300 cursor-pointer ${RING}`}
           >
             <Sparkles size={14} aria-hidden="true" />
             Get Started
@@ -651,79 +701,95 @@ export function Navbar() {
               <>
                 {simple(HOME, 0)}
 
-                {/* Ecosystem accordion — the seven verticals */}
+                {/* Businesses accordion — all nine, the five websites first */}
                 <div className={anim} style={delayFor(1)}>
                   <div
                     className={`flex items-stretch rounded-xl transition-colors duration-300 ${
-                      ecoActive ? 'bg-gradient-to-r from-primary/15 to-accent/10' : 'hover:bg-foreground/5'
+                      menuActive ? 'bg-gradient-to-r from-primary/15 to-accent/10' : 'hover:bg-foreground/5'
                     }`}
                   >
                     <Link
                       href="/#businesses"
                       onClick={closeMobile}
                       className={`flex flex-1 items-center rounded-xl px-4 py-3 text-sm font-semibold tracking-normal ${RING_INSET} ${
-                        ecoActive ? 'text-primary dark:text-accent' : 'text-foreground/75 hover:text-foreground'
+                        menuActive ? 'text-primary dark:text-accent' : 'text-foreground/75 hover:text-foreground'
                       }`}
                     >
-                      Ecosystem
+                      Businesses
                     </Link>
                     <button
                       type="button"
-                      onClick={() => setMobileEco((v) => !v)}
-                      aria-label="Ecosystem submenu"
-                      aria-expanded={mobileEco}
-                      aria-controls="mobile-ecosystem"
+                      onClick={() => setMobileBiz((v) => !v)}
+                      aria-label="Businesses submenu"
+                      aria-expanded={mobileBiz}
+                      aria-controls="mobile-businesses"
                       className={`flex min-w-12 items-center justify-center rounded-xl px-3 text-foreground/50 hover:text-foreground cursor-pointer ${RING_INSET}`}
                     >
                       <ChevronDown
                         size={16}
                         aria-hidden="true"
                         className={`transition-transform duration-300 motion-reduce:transition-none ${
-                          mobileEco ? 'rotate-180' : 'rotate-0'
+                          mobileBiz ? 'rotate-180' : 'rotate-0'
                         }`}
                       />
                     </button>
                   </div>
 
                   <div
-                    id="mobile-ecosystem"
-                    inert={!mobileEco}
+                    id="mobile-businesses"
+                    inert={!mobileBiz}
                     className={`grid transition-[grid-template-rows,opacity] duration-300 ease-out motion-reduce:transition-none ${
-                      mobileEco ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'
+                      mobileBiz ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'
                     }`}
                   >
                     <div className="min-h-0 overflow-hidden">
-                      <ul className="ml-4 mt-1 mb-1 space-y-0.5 border-l border-foreground/10 pl-2">
-                        {DIVISIONS.map((d) => {
-                          const Icon = d.icon;
-                          const isActive = isHrefActive(d.href);
-                          return (
-                            <li key={d.slug}>
-                              <Link
-                                href={d.href}
-                                onClick={closeMobile}
-                                aria-current={isActive ? (isHashHref(d.href) ? 'location' : 'page') : undefined}
-                                className={`flex items-center gap-3 rounded-xl px-2.5 py-2 transition-colors hover:bg-foreground/5 ${RING_INSET} ${
-                                  isActive ? 'bg-primary/8' : ''
-                                }`}
-                              >
-                                <span
-                                  className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-white shadow-sm ${d.iconBg}`}
-                                >
-                                  <Icon size={17} aria-hidden="true" />
-                                </span>
-                                <span className="min-w-0 flex-1">
-                                  <span className="flex items-center gap-2">
-                                    <span className="truncate text-[13px] font-semibold text-foreground">{d.short}</span>
-                                    {d.status === 'soon' && <SoonBadge />}
-                                  </span>
-                                  <span className="block truncate text-[11px] text-foreground/55">{d.tagline}</span>
-                                </span>
-                              </Link>
-                            </li>
-                          );
-                        })}
-                      </ul>
+                      <div className="ml-4 mt-1 mb-1 border-l border-foreground/10 pl-2">
+                        {MENU_GROUPS.map((group) => (
+                          <div key={group.id}>
+                            <p
+                              id={`mobile-${group.id}`}
+                              className="px-2.5 pb-1 pt-2 text-[10px] font-bold uppercase tracking-[0.2em] text-foreground/45"
+                            >
+                              {group.label}
+                            </p>
+                            <ul aria-labelledby={`mobile-${group.id}`} className="space-y-0.5">
+                              {group.items.map((d) => {
+                                const Icon = d.icon;
+                                const isActive = isHrefActive(d.href);
+                                return (
+                                  <li key={d.slug}>
+                                    <Link
+                                      href={d.href}
+                                      onClick={closeMobile}
+                                      aria-current={currentFor(d.href, isActive)}
+                                      className={`flex items-center gap-3 rounded-xl px-2.5 py-2 transition-colors hover:bg-foreground/5 ${RING_INSET} ${
+                                        isActive ? 'bg-primary/8' : ''
+                                      }`}
+                                    >
+                                      <span
+                                        className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-white shadow-sm ${d.iconBg}`}
+                                      >
+                                        <Icon size={17} aria-hidden="true" />
+                                      </span>
+                                      <span className="min-w-0 flex-1">
+                                        <span className="flex items-center gap-2">
+                                          <span className="truncate text-[13px] font-semibold text-foreground">
+                                            {d.short}
+                                          </span>
+                                          {d.status === 'soon' && <SoonBadge />}
+                                        </span>
+                                        <span className="block truncate text-[11px] text-foreground/55">
+                                          {d.tagline}
+                                        </span>
+                                      </span>
+                                    </Link>
+                                  </li>
+                                );
+                              })}
+                            </ul>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   </div>
                 </div>
