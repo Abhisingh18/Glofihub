@@ -7,6 +7,7 @@ import { Card } from '@/components/crm/ui';
 import { StatusChanger } from '@/components/crm/StatusChanger';
 import { AssignControl } from '@/components/crm/AssignControl';
 import { MinutesControl } from '@/components/crm/MinutesControl';
+import { ResetPasswordControl } from '@/components/crm/ResetPasswordControl';
 import { setStudentStatus } from '@/lib/actions/admin';
 import { PAYMENT_TYPE_META, type ActivityLog } from '@/lib/database.types';
 import { MapPin, Globe, GraduationCap, Calendar, StickyNote, CreditCard, Activity, MessagesSquare } from 'lucide-react';
@@ -75,6 +76,7 @@ export default async function AdminStudentDetail({ params }: { params: Promise<{
               <p className="text-xs font-semibold text-foreground/55 mb-1.5">Talk time (minutes)</p>
               <MinutesControl studentId={student.id} current={student.chat_minutes ?? 0} />
             </div>
+            <ResetPasswordControl userId={student.user_id} />
           </div>
         </Card>
 
