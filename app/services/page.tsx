@@ -6,9 +6,9 @@ import { Chatbot } from '@/components/Chatbot';
 import { FloatingContact } from '@/components/FloatingContact';
 import { SITE } from '@/lib/site';
 
-const TITLE = 'GlofiHub Digital — Web, App & AI Development, Marketing, Branding & PR';
+const TITLE = 'GlofiHub Technology — Web, Apps, AI, CRM & Automation';
 const DESCRIPTION =
-  'GlofiHub Digital brings website, app and AI development together with digital marketing, SEO, branding & PR and ready-made website packages — everything your brand needs to grow, under one roof.';
+  'GlofiHub Technology: web and app development, AI and automation, CRM and business systems, digital growth, and SaaS and product development — Build. Automate. Scale.';
 
 export const metadata: Metadata = {
   // `absolute` so the root "%s | GlofiHub" template doesn't repeat the brand name.
@@ -19,24 +19,24 @@ export const metadata: Metadata = {
     type: 'website',
     locale: SITE.locale,
     siteName: SITE.name,
-    title: 'GlofiHub Digital — Everything Your Brand Needs to Grow',
+    title: 'GlofiHub Technology — Build. Automate. Scale.',
     description:
-      'Web, app & AI development, digital marketing, SEO, branding & PR and website packages — under one roof.',
+      'Web and app development, AI and automation, CRM and business systems, digital growth and SaaS.',
     url: '/services',
     images: [
       {
         url: SITE.ogImage,
         width: 1200,
         height: 630,
-        alt: `GlofiHub Digital — ${SITE.name}`,
+        alt: `GlofiHub Technology — ${SITE.name}`,
       },
     ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'GlofiHub Digital — Everything Your Brand Needs to Grow',
+    title: 'GlofiHub Technology — Build. Automate. Scale.',
     description:
-      'Web, app & AI development, digital marketing, SEO, branding & PR and website packages — under one roof.',
+      'Web and app development, AI and automation, CRM and business systems, digital growth and SaaS.',
     images: [SITE.ogImage],
   },
 };

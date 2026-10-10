@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { Fragment, useEffect, useRef, useState } from 'react';
 import {
   Megaphone, Sparkles, Package, FolderKanban, ArrowRight, Phone, Code2, MessageCircle,
   Globe, Monitor, Smartphone, Bot, Workflow, Rocket, ShoppingCart, Database, PenTool,
@@ -24,6 +24,8 @@ interface ServiceCategory {
   items: ServiceItem[];
   /** Portfolio-style category (not counted as "services", different enquiry wording). */
   showcase?: boolean;
+  /** Non-technology group, shown after the Technology categories. */
+  secondary?: boolean;
 }
 
 const WHATSAPP_TEXT = 'Hi GlofiHub 👋, I want to know more about your services.';
@@ -35,30 +37,43 @@ const enquiryText = (cat: ServiceCategory) =>
 
 const CATEGORIES: ServiceCategory[] = [
   {
-    id: 'web-app-ai',
-    icon: Code2,
-    title: 'Web, App & AI Development',
-    intro: 'Custom websites, apps and AI agents — built end to end for your business.',
+    id: 'web-app-development',
+    icon: Monitor,
+    title: 'Web & App Development',
+    intro: 'Websites, web apps, mobile apps and online stores — designed and built end to end.',
     items: [
       { name: 'Website Development', detail: 'Fast, responsive, SEO-ready websites tailored to your brand.' },
       { name: 'Web Application Development', detail: 'Scalable web apps & dashboards with secure logins.' },
       { name: 'Mobile App Development', detail: 'Android & iOS apps with a smooth, native-like experience.' },
-      { name: 'AI Agents & Chatbots', detail: 'Smart assistants that talk to customers & automate tasks 24/7.' },
-      { name: 'AI Automation', detail: 'Automate workflows, replies and data with AI.' },
-      { name: 'SaaS Product Development', detail: 'Launch your subscription software from idea to production.' },
       { name: 'E-commerce Platforms', detail: 'Feature-rich online stores with payments & inventory.' },
-      { name: 'CRM & ERP Systems', detail: 'Custom systems to manage leads, staff & operations.' },
-      { name: 'Custom Software', detail: 'Bespoke software built around your exact requirements.' },
       { name: 'UI/UX Design', detail: 'Clean, modern interfaces that users love.' },
-      { name: 'API Development & Integration', detail: 'Connect your tools with secure, reliable APIs.' },
-      { name: 'Cloud & Deployment', detail: 'Hosting, DevOps and reliable deployment.' },
     ],
   },
   {
-    id: 'digital-marketing',
+    id: 'ai-automation',
+    icon: Bot,
+    title: 'AI & Automation',
+    intro: 'AI assistants, agents and automation that handle repetitive work for you.',
+    items: [
+      { name: 'AI Agents & Chatbots', detail: 'Smart assistants that talk to customers & automate tasks 24/7.' },
+      { name: 'AI Automation', detail: 'Automate workflows, replies and data with AI.' },
+    ],
+  },
+  {
+    id: 'business-systems',
+    icon: Database,
+    title: 'Business Systems',
+    intro: 'CRM, ERP, dashboards and custom software built around how your business runs.',
+    items: [
+      { name: 'CRM & ERP Systems', detail: 'Custom systems to manage leads, staff & operations.' },
+      { name: 'Custom Software', detail: 'Bespoke software built around your exact requirements.' },
+    ],
+  },
+  {
+    id: 'digital-growth',
     icon: Megaphone,
-    title: 'Digital Marketing',
-    intro: 'Data-driven campaigns that grow your reach, traffic and sales online.',
+    title: 'Digital Growth',
+    intro: 'SEO, social media, ads and direct-channel marketing to grow your reach, traffic and sales.',
     items: [
       { name: 'Business Website with SEO', detail: 'A conversion-focused website built with SEO from day one.' },
       { name: 'SEO Services', detail: 'Rank higher on Google with on-page, technical & off-page SEO.' },
@@ -76,10 +91,22 @@ const CATEGORIES: ServiceCategory[] = [
     ],
   },
   {
-    id: 'branding-pr',
+    id: 'saas-product',
+    icon: Rocket,
+    title: 'SaaS & Product Development',
+    intro: 'SaaS, APIs and cloud — take a product from idea to production.',
+    items: [
+      { name: 'SaaS Product Development', detail: 'Launch your subscription software from idea to production.' },
+      { name: 'API Development & Integration', detail: 'Connect your tools with secure, reliable APIs.' },
+      { name: 'Cloud & Deployment', detail: 'Hosting, DevOps and reliable deployment.' },
+    ],
+  },
+  {
+    id: 'branding-pr-media',
     icon: Sparkles,
-    title: 'Branding & PR',
-    intro: 'Build a powerful, trusted identity that people recognise and remember.',
+    title: 'Branding, PR & Media',
+    intro: 'Identity, public relations and video that help people recognise and remember you.',
+    secondary: true,
     items: [
       { name: 'Online Reputation Management', detail: 'Monitor, protect and improve your brand image online.' },
       { name: 'PR Agency', detail: 'Strategic public relations that get you noticed.' },
@@ -95,10 +122,11 @@ const CATEGORIES: ServiceCategory[] = [
     ],
   },
   {
-    id: 'website-seo-packages',
+    id: 'packages',
     icon: Package,
-    title: 'Website & SEO Packages',
-    intro: 'Ready-made packages to get your business online and growing — fast.',
+    title: 'Packages',
+    intro: 'Ready-made packages to get your business online and growing.',
+    secondary: true,
     items: [
       { name: 'Small Business Website Package', detail: 'An affordable, professional site to get you online quickly.' },
       { name: 'Business Website with SEO Package', detail: 'A complete website plus SEO to drive steady traffic.' },
@@ -110,8 +138,9 @@ const CATEGORIES: ServiceCategory[] = [
     id: 'our-work',
     icon: FolderKanban,
     title: 'Our Work',
-    intro: 'A glimpse of the areas we deliver results in — across formats and channels.',
+    intro: 'A glimpse of the areas we deliver in, across formats and channels.',
     showcase: true,
+    secondary: true,
     items: [
       { name: 'Web Designing Portfolio', detail: 'Modern, responsive websites across industries.' },
       { name: 'SEO Portfolio', detail: 'Proven ranking & traffic growth case studies.' },
@@ -124,7 +153,7 @@ const CATEGORIES: ServiceCategory[] = [
 
 /** Per-item icon (presentation only). Unlisted items fall back to the category icon. */
 const ITEM_ICONS: Record<string, LucideIcon> = {
-  // Web, App & AI Development
+  // Web, App, AI, Business Systems, SaaS
   'Website Development': Globe,
   'Web Application Development': Monitor,
   'Mobile App Development': Smartphone,
@@ -137,7 +166,7 @@ const ITEM_ICONS: Record<string, LucideIcon> = {
   'UI/UX Design': PenTool,
   'API Development & Integration': Plug,
   'Cloud & Deployment': Cloud,
-  // Digital Marketing
+  // Digital Growth
   'Business Website with SEO': LayoutTemplate,
   'SEO Services': Search,
   'GMB SEO': MapPin,
@@ -151,7 +180,7 @@ const ITEM_ICONS: Record<string, LucideIcon> = {
   'Content Marketing': FileText,
   'Political Campaign Marketing': Landmark,
   'Digital Marketing by Industry': Building2,
-  // Branding & PR
+  // Branding, PR & Media
   'Online Reputation Management': ShieldCheck,
   'PR Agency': Newspaper,
   'Press Release Distribution': Send,
@@ -221,8 +250,6 @@ const TONES: Tone[] = [
   },
 ];
 
-const SERVICE_COUNT = CATEGORIES.filter((c) => !c.showcase).reduce((n, c) => n + c.items.length, 0);
-
 const RING =
   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background';
 const RING_ON_DARK =
@@ -287,23 +314,23 @@ export function AllServices() {
             <span className="w-6 h-6 rounded-full bg-gradient-to-br from-indigo-500 to-violet-600 text-white flex items-center justify-center">
               <Code2 size={13} />
             </span>
-            GlofiHub Digital
+            GlofiHub Technology
           </span>
           <h1
             className="animate-hero-rise font-display text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-foreground leading-[1.08]"
             style={{ animationDelay: '80ms' }}
           >
-            Everything Your Brand{' '}
+            Build. Automate.{' '}
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-green-600 via-emerald-500 to-teal-500 animate-gradient-text">
-              Needs to Grow
+              Scale.
             </span>
           </h1>
           <p
             className="animate-hero-rise mt-5 text-base md:text-lg text-foreground/60 font-medium leading-relaxed"
             style={{ animationDelay: '160ms' }}
           >
-            GlofiHub Digital brings web, apps and AI together with digital marketing, branding and PR —{' '}
-            {SERVICE_COUNT}+ services under one roof, delivered by experts who care about your results.
+            GlofiHub Technology covers web and app development, AI and automation, CRM and business systems,
+            digital growth and SaaS — plus branding, PR and ready-made packages — all in one place.
           </p>
           <div
             className="animate-hero-rise mt-8 flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3"
@@ -322,7 +349,7 @@ export function AllServices() {
               href={`#${CATEGORIES[0].id}`}
               className={`inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-full bg-card border border-foreground/15 text-foreground font-semibold text-sm tracking-wide hover:border-foreground/30 hover:shadow-md transition-all ${RING}`}
             >
-              Explore Services
+              Explore Technology
             </a>
           </div>
         </div>
@@ -331,7 +358,7 @@ export function AllServices() {
         <div>
           <div className="sticky top-[4.5rem] z-30 mb-10 md:mb-14">
             <nav
-              aria-label="Service categories"
+              aria-label="Technology categories"
               className="rounded-2xl border border-foreground/10 bg-background/80 backdrop-blur-xl shadow-lg shadow-black/5 dark:shadow-black/30"
             >
               <div
@@ -374,8 +401,15 @@ export function AllServices() {
             {CATEGORIES.map((cat, i) => {
               const Icon = cat.icon;
               const tone = TONES[i % TONES.length];
+              const firstSecondary = cat.secondary && !CATEGORIES[i - 1]?.secondary;
               return (
-                <section key={cat.id} id={cat.id} aria-labelledby={`${cat.id}-title`} className="scroll-mt-28">
+                <Fragment key={cat.id}>
+                {firstSecondary && (
+                  <p className="pt-4 text-center text-xs font-semibold tracking-wide uppercase text-foreground/50">
+                    More from GlofiHub
+                  </p>
+                )}
+                <section id={cat.id} aria-labelledby={`${cat.id}-title`} className="scroll-mt-28">
                   <div
                     data-reveal
                     className="relative rounded-3xl border border-foreground/10 bg-muted/30 dark:bg-card/40 p-5 sm:p-8 md:p-10"
@@ -443,6 +477,7 @@ export function AllServices() {
                     </ul>
                   </div>
                 </section>
+                </Fragment>
               );
             })}
           </div>
