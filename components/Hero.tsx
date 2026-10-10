@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { ArrowDown, Sparkles, Play, X, ShieldCheck, Users, Globe, MessageCircle } from 'lucide-react';
-import { useState, useEffect, useRef } from 'react';
+import { Fragment, useState, useEffect, useRef } from 'react';
 import { DIVISIONS } from '@/lib/divisions';
 import { SITE } from '@/lib/site';
 
@@ -67,7 +67,7 @@ const FOCUS_RING =
   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary dark:focus-visible:ring-blue-300 focus-visible:ring-offset-2 focus-visible:ring-offset-background';
 
 export function Hero() {
-  const whatsappLink = `https://wa.me/${SITE.whatsapp}?text=${encodeURIComponent('Hi from GlofiHub website')}`;
+  const whatsappLink = `https://wa.me/${SITE.whatsapp}?text=${encodeURIComponent('Hi GlofiHub, I would like to talk to an expert.')}`;
   const [showVideo, setShowVideo] = useState(false);
   const dialogRef = useRef<HTMLDivElement>(null);
   const closeBtnRef = useRef<HTMLButtonElement>(null);
@@ -133,7 +133,10 @@ export function Hero() {
     { value: '95%', label: 'Visa Success Rate', icon: ShieldCheck },
   ];
 
-  const line1 = ['One', 'Group.'];
+  // Hero pillars (blueprint). Index 2 ("Careers") ends the first row on small screens,
+  // so its trailing bullet is hidden there and a forced break starts row two.
+  const pillars = ['Education', 'Skills', 'Careers', 'Technology', 'Global Opportunities'];
+  const pillarBreakAfter = 2;
 
   return (
     <>
@@ -173,51 +176,71 @@ export function Hero() {
 
         {/* Content (centered column, text sits between the two people) */}
         <div className="relative z-10 w-full max-w-3xl mx-auto flex flex-col items-center text-center">
-          {/* Eyebrow badge — group tagline */}
-          <div className="animate-hero-rise inline-flex max-w-full items-center gap-2 px-4 py-2 rounded-full bg-primary/8 dark:bg-white/10 border border-primary/15 dark:border-white/15 backdrop-blur-md mb-7" style={{ animationDelay: '0.05s' }}>
-            <Sparkles size={14} className="shrink-0 text-primary dark:text-blue-300 animate-pulse motion-reduce:animate-none" aria-hidden="true" />
-            <span className="text-xs font-bold text-primary dark:text-white/90 tracking-wide">{SITE.tagline}</span>
-          </div>
-
-          {/* Headline (word-by-word rise + gradient + underline draw) */}
-          <h1 className="font-display text-[2rem] min-[420px]:text-4xl sm:text-5xl lg:text-6xl font-extrabold leading-[1.05] tracking-tight">
-            <span className="sr-only">{SITE.name}: </span>
-            <span className="block">
-              {line1.map((word, i) => (
-                <span
-                  key={word}
-                  className={`inline-block animate-hero-rise${i < line1.length - 1 ? ' mr-[0.28em]' : ''}`}
-                  style={{ animationDelay: `${0.12 + i * 0.09}s` }}
-                >
-                  <span className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-600 dark:from-white dark:via-slate-200 dark:to-slate-400 bg-clip-text text-transparent">
-                    {word}
-                  </span>
+          {/* Wordmark headline — "GLOFI" + "HUB" rise in turn, gradient + underline draw.
+              Case is CSS-only (uppercase) so assistive tech reads "GlofiHub". Spans are
+              adjacent with no whitespace between them, so there is nothing to collapse. */}
+          <h1 className="font-display text-5xl min-[420px]:text-6xl sm:text-7xl lg:text-8xl font-extrabold uppercase leading-[1.05] tracking-[0.01em]">
+            <span className="relative inline-block pb-2 sm:pb-3">
+              <span className="inline-block animate-hero-rise" style={{ animationDelay: '0.1s' }}>
+                <span className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-600 dark:from-white dark:via-slate-200 dark:to-slate-400 bg-clip-text text-transparent">
+                  Glofi
                 </span>
-              ))}
-            </span>
-            <span className="block animate-hero-rise mt-1.5" style={{ animationDelay: '0.3s' }}>
-              <span className="relative inline-block pb-1">
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-green-600 via-emerald-500 to-green-500 animate-gradient-text">
-                  Many Businesses.
-                </span>
-                {/* animated underline */}
-                <span className="absolute left-0 -bottom-0.5 h-[3px] w-full rounded-full bg-gradient-to-r from-green-600 via-emerald-500 to-green-500 animate-underline" />
               </span>
+              <span className="inline-block animate-hero-rise" style={{ animationDelay: '0.2s' }}>
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-green-600 via-emerald-500 to-green-500 animate-gradient-text">
+                  Hub
+                </span>
+              </span>
+              {/* animated underline */}
+              <span aria-hidden="true" className="absolute left-0 bottom-0 h-[3px] sm:h-1 w-full rounded-full bg-gradient-to-r from-green-600 via-emerald-500 to-green-500 animate-underline" />
             </span>
           </h1>
 
+          {/* Brand line */}
+          <p
+            className="animate-hero-rise mt-4 sm:mt-5 font-display text-lg min-[420px]:text-xl sm:text-2xl lg:text-3xl font-bold tracking-tight text-balance text-primary dark:text-blue-200"
+            style={{ animationDelay: '0.3s' }}
+          >
+            {SITE.tagline}
+          </p>
+
+          {/* Pillars — inline items with bullet separators; on small screens they sit on
+              two deliberate rows (3 + 2), on sm+ they share one row. */}
+          <ul
+            aria-label="What GlofiHub brings together"
+            className="animate-hero-rise mt-5 flex flex-wrap justify-center text-[13px] min-[400px]:text-sm md:text-base font-semibold tracking-wide text-foreground/80"
+            style={{ animationDelay: '0.38s' }}
+          >
+            {pillars.map((p, i) => (
+              <Fragment key={p}>
+                <li className="inline-flex items-center leading-7">
+                  <span>{p}</span>
+                  {i < pillars.length - 1 && (
+                    <span
+                      aria-hidden="true"
+                      className={`mx-2 sm:mx-2.5 text-primary/50 dark:text-blue-300/60 ${i === pillarBreakAfter ? 'hidden sm:inline' : ''}`}
+                    >
+                      •
+                    </span>
+                  )}
+                </li>
+                {i === pillarBreakAfter && <li aria-hidden="true" className="basis-full h-0 sm:hidden" />}
+              </Fragment>
+            ))}
+          </ul>
+
           {/* Subcopy */}
-          <p className="animate-hero-rise mt-6 text-sm sm:text-base text-foreground/75 leading-relaxed font-medium max-w-xl" style={{ animationDelay: '0.45s' }}>
-            GlofiHub is one group with four businesses — Education, Academy, Export–Import and Digital — built to open doors for students, professionals and companies worldwide.
+          <p className="animate-hero-rise mt-5 text-sm sm:text-base text-foreground/75 leading-relaxed font-medium max-w-xl text-pretty" style={{ animationDelay: '0.46s' }}>
+            GlofiHub connects learners, professionals, institutions and businesses with the education, skills, services and opportunities they need to move forward.
           </p>
 
           {/* CTAs + Play */}
-          <div className="animate-hero-rise mt-8 w-full flex flex-col sm:flex-row sm:flex-wrap items-center justify-center gap-4" style={{ animationDelay: '0.55s' }}>
+          <div className="animate-hero-rise mt-7 sm:mt-8 w-full flex flex-col sm:flex-row sm:flex-wrap items-center justify-center gap-4" style={{ animationDelay: '0.54s' }}>
             <a
               href="#businesses"
               className={`btn-shine group w-full sm:w-auto px-7 py-4 rounded-full bg-gradient-to-r from-primary to-accent dark:to-blue-500 text-white font-bold text-sm tracking-wide shadow-lg shadow-primary/30 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-primary/40 active:translate-y-0 transition-all duration-300 inline-flex items-center justify-center gap-2 ${FOCUS_RING}`}
             >
-              Explore Our Businesses
+              Explore GlofiHub
               <ArrowDown size={16} className="group-hover:translate-y-0.5 transition-transform" aria-hidden="true" />
             </a>
 
@@ -225,11 +248,11 @@ export function Hero() {
               href={whatsappLink}
               target="_blank"
               rel="noopener noreferrer"
-              aria-label="Talk to us on WhatsApp (opens in a new tab)"
+              aria-label="Talk to an Expert on WhatsApp (opens in a new tab)"
               className={`group w-full sm:w-auto px-7 py-4 rounded-full bg-white/60 dark:bg-white/5 backdrop-blur-md border-2 border-foreground/25 dark:border-white/25 text-foreground font-bold text-sm tracking-wide hover:bg-foreground hover:text-background hover:border-foreground hover:-translate-y-0.5 active:translate-y-0 transition-all duration-300 inline-flex items-center justify-center gap-2 ${FOCUS_RING}`}
             >
               <MessageCircle size={16} className="group-hover:scale-110 transition-transform" aria-hidden="true" />
-              Talk to Us
+              Talk to an Expert
             </a>
 
             {/* Play button */}
@@ -265,36 +288,46 @@ export function Hero() {
             <span className="underline-offset-4 group-hover:underline">Not sure where to start? Ask our AI assistant</span>
           </button>
 
-          {/* Business chips — quick links to every GlofiHub business */}
-          <nav aria-label="Our businesses" className="animate-hero-rise mt-7 w-full" style={{ animationDelay: '0.75s' }}>
-            <ul className="flex flex-wrap items-center justify-center gap-2">
-              {DIVISIONS.map((d) => (
-                <li key={d.slug}>
-                  <Link
-                    href={d.href}
-                    className={`group inline-flex items-center gap-2 rounded-full pl-1.5 pr-3.5 py-1.5 bg-white/70 dark:bg-white/10 backdrop-blur-md border border-foreground/10 dark:border-white/15 text-xs font-semibold text-foreground shadow-sm hover:-translate-y-0.5 hover:border-primary/40 dark:hover:border-blue-300/50 hover:shadow-md transition-all duration-300 ${FOCUS_RING}`}
-                  >
-                    <span className={`flex items-center justify-center w-6 h-6 rounded-full text-white ${d.iconBg} group-hover:scale-110 transition-transform duration-300`}>
-                      <d.icon size={13} aria-hidden="true" />
-                    </span>
-                    <span>{d.name.replace(/^GlofiHub\s+/, '')}</span>
-                    {d.status === 'soon' && (
-                      <>
-                        <span aria-hidden="true" className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-foreground/10 dark:bg-white/15 text-foreground/70">
-                          Soon
-                        </span>
-                        <span className="sr-only">(launching soon)</span>
-                      </>
-                    )}
-                  </Link>
-                </li>
+          {/* Ecosystem chips — quick links to all seven verticals.
+              Mobile/tablet: one swipeable row that bleeds to the screen edges (centred when it
+              fits, start-aligned when it overflows). md+: two centred rows (first 4, then 3). */}
+          <nav
+            aria-label="The GlofiHub ecosystem"
+            className="animate-hero-rise mt-6 self-stretch -mx-4 sm:-mx-6 md:mx-0"
+            style={{ animationDelay: '0.7s' }}
+          >
+            <ul className="flex flex-nowrap md:flex-wrap md:justify-center gap-x-2 overflow-x-auto md:overflow-visible px-4 sm:px-6 md:px-0 py-1.5 md:py-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden [mask-image:linear-gradient(to_right,transparent,black_16px,black_calc(100%_-_16px),transparent)] md:[mask-image:none]">
+              {DIVISIONS.map((d, i) => (
+                <Fragment key={d.slug}>
+                  <li className="shrink-0 md:my-1 max-md:first:ml-auto max-md:last:mr-auto">
+                    <Link
+                      href={d.href}
+                      className={`group inline-flex items-center gap-2 whitespace-nowrap rounded-full pl-1.5 pr-3.5 py-1.5 bg-white/70 dark:bg-white/10 backdrop-blur-md border border-foreground/10 dark:border-white/15 text-xs md:text-[13px] font-semibold text-foreground shadow-sm hover:-translate-y-0.5 hover:border-primary/40 dark:hover:border-blue-300/50 hover:shadow-md transition-all duration-300 ${FOCUS_RING}`}
+                    >
+                      <span className={`flex items-center justify-center w-6 h-6 rounded-full text-white ${d.iconBg} group-hover:scale-110 transition-transform duration-300`}>
+                        <d.icon size={13} aria-hidden="true" />
+                      </span>
+                      <span>{d.short}</span>
+                      {d.status === 'soon' && (
+                        <>
+                          <span aria-hidden="true" className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-foreground/10 dark:bg-white/15 text-foreground/70">
+                            Soon
+                          </span>
+                          <span className="sr-only">(launching soon)</span>
+                        </>
+                      )}
+                    </Link>
+                  </li>
+                  {/* md+: forced break after the 4th chip so the two rows are balanced */}
+                  {i === 3 && <li aria-hidden="true" className="hidden md:block basis-full h-0" />}
+                </Fragment>
               ))}
             </ul>
           </nav>
 
-          {/* Trust panel — stats + education on-ground presence in one glass card */}
+          {/* Trust panel — stats + on-the-ground presence in one glass card */}
           <div
-            className="animate-hero-rise mt-10 w-full max-w-2xl rounded-3xl bg-white/55 dark:bg-slate-900/50 border border-white/50 dark:border-white/15 backdrop-blur-xl shadow-xl shadow-black/5 overflow-hidden"
+            className="animate-hero-rise mt-8 sm:mt-10 w-full max-w-2xl rounded-3xl bg-white/55 dark:bg-slate-900/50 border border-white/50 dark:border-white/15 backdrop-blur-xl shadow-xl shadow-black/5 overflow-hidden"
             style={{ animationDelay: '0.85s' }}
           >
             {/* Stats row with elegant dividers */}
@@ -312,7 +345,7 @@ export function Hero() {
 
             {/* Divider + global presence with overlapping flag avatars */}
             <div className="border-t border-foreground/10 px-5 py-3.5 flex flex-wrap items-center justify-center gap-x-3 gap-y-2 bg-white/10 dark:bg-white/5">
-              <span className="text-[12px] font-semibold text-foreground/70">Education on-ground in</span>
+              <span className="text-[12px] font-semibold text-foreground/70">On-ground in</span>
               <div className="flex items-center -space-x-2">
                 {countries.map((c) => (
                   <a key={c.name} href={c.link} title={c.name} className="group relative rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary dark:focus-visible:ring-blue-300" aria-label={c.name}>
@@ -339,10 +372,10 @@ export function Hero() {
         {/* Scroll hint → businesses */}
         <a
           href="#businesses"
-          aria-label="Scroll to our businesses"
+          aria-label="Scroll to the GlofiHub ecosystem"
           className="hidden lg:flex absolute bottom-6 left-1/2 -translate-x-1/2 z-20 flex-col items-center gap-1.5 rounded-md text-foreground/55 hover:text-foreground transition-colors group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary dark:focus-visible:ring-blue-300"
         >
-          <span className="text-[8px] font-black uppercase tracking-[0.3em]">Our Businesses</span>
+          <span className="text-[8px] font-black uppercase tracking-[0.3em]">Our Ecosystem</span>
           <span className="w-5 h-8 rounded-full border-2 border-foreground/35 flex items-start justify-center p-1 group-hover:border-foreground/60 transition-colors">
             <span className="w-1 h-1.5 rounded-full bg-foreground animate-bounce motion-reduce:animate-none" />
           </span>
