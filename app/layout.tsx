@@ -100,6 +100,7 @@ const ORG_ID = `${SITE.url}/#organization`
 const DIVISION_SCHEMA_TYPE: Record<string, string> = {
   education: 'EducationalOrganization',
   academy: 'EducationalOrganization',
+  counselling: 'EducationalOrganization',
   consulting: 'ProfessionalService',
   technology: 'ProfessionalService',
 }

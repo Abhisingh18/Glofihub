@@ -6,10 +6,10 @@ export const SITE = {
   name: 'GlofiHub',
   legalName: 'GlofiHub Private Limited',
   url: (process.env.NEXT_PUBLIC_SITE_URL || 'https://glofihub.com').replace(/\/$/, ''),
-  title: 'GlofiHub — Education, Academy, Careers, Technology & Global Opportunities',
+  title: 'GlofiHub — Education, Counselling, Academy, Import-Export & Technology',
   shortTitle: 'GlofiHub',
   description:
-    'GlofiHub is an ecosystem connecting learners, professionals, institutions and businesses with education (study abroad, MBBS abroad & admissions in India), skills training, careers, consulting, technology and global opportunities. Trusted by students across India, Russia & Central Asia.',
+    'GlofiHub is an ecosystem connecting learners, professionals, institutions and businesses with education (study abroad, MBBS abroad & admissions in India), counselling, skills training, careers, consulting, technology, import-export and global opportunities. Trusted by students across India, Russia & Central Asia.',
   tagline: 'A Gateway to Infinite Possibilities',
   locale: 'en_IN',
   email: 'info@glofihub.com',
@@ -34,7 +34,9 @@ export const SITE = {
     // Ecosystem-level terms
     'GlofiHub ecosystem',
     'GlofiHub Education',
+    'GlofiHub Counselling',
     'GlofiHub Academy',
+    'GlofiHub Import-Export',
     'GlofiHub Consulting',
     'GlofiHub Technology',
     'GlofiHub Partner Network',
