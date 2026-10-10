@@ -76,10 +76,12 @@ export const paymentOrderSchema = z.object({
 /** The 9 requirement labels shown on the website contact form (stored verbatim in leads.requirement). */
 export const LEAD_REQUIREMENTS = [
   'Education',
+  'Counselling',
   'Academy / Courses',
   'Jobs & Careers',
   'Consulting',
   'Technology',
+  'Import-Export',
   'Global Opportunities',
   'Partner Network',
   'Institutional Partnership',
@@ -148,4 +150,9 @@ export type LeadInput = z.infer<typeof leadSchema>;
 export const leadStatusSchema = z.object({
   id: z.string().uuid(),
   status: z.enum(LEAD_STATUSES),
+});
+
+export const resetPasswordSchema = z.object({
+  user_id: z.string().uuid(),
+  password: z.string().min(8, 'Password must be at least 8 characters').max(100, 'Password is too long'),
 });
