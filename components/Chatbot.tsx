@@ -2,16 +2,35 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { MessageCircle, X, Send, Maximize2, Minimize2, RotateCcw, MessageSquare, GraduationCap, Briefcase, Brain, Users, Globe, MapPin, Stethoscope, CheckCircle, XCircle, UserCheck, Sparkles, Paperclip, FileUp, Ship, Code2 } from 'lucide-react';
+import { MessageCircle, X, Send, Maximize2, Minimize2, RotateCcw, MessageSquare, GraduationCap, Briefcase, Brain, Users, Globe, MapPin, Stethoscope, CheckCircle, XCircle, UserCheck, Sparkles, Paperclip, FileUp, Code2, BookOpen, Compass, Handshake, HeartHandshake, Ship, ExternalLink } from 'lucide-react';
 import { chatDB, ChatMessage } from '@/lib/db';
 import { DIVISIONS } from '@/lib/divisions';
 import { SITE } from '@/lib/site';
 
-const INTRO_TEXT = 'Hi,\nI’m the GlofiHub AI Assistant — Education, Academy, Export–Import & Digital.\nTell me what you’re looking for:';
+const INTRO_TEXT = 'Hi,\nI’m the GlofiHub AI Assistant — Education, Counselling, Academy, Import-Export, Technology & more.\nTell me what you’re looking for:';
 
 // Top-level options that map to a GlofiHub business (DIVISIONS slug).
-// They answer with a short intro instead of entering the multi-step flows.
-const DIVISION_OPTION_SLUGS = ['export-import', 'digital'];
+// They answer with a short info reply instead of entering the multi-step flows.
+// Key = option value used in the menu, value = DIVISIONS slug.
+const DIVISION_OPTION_SLUGS: Record<string, string> = {
+  counselling: 'counselling',
+  'import-export': 'import-export',
+  consulting: 'consulting',
+  technology: 'technology',
+  global: 'global-opportunities',
+};
+
+// Businesses with a website of their own: their info reply also offers an "Open … website" quick reply
+// (the path is the division's `href` in lib/divisions.ts, e.g. /counselling, /technology).
+const DIVISION_WEBSITE_SLUGS = ['counselling', 'technology', 'import-export'];
+
+// User-facing names for the internal flow ids (flow ids stay as-is so saved chat state keeps working).
+const FLOW_LABELS: Record<string, string> = {
+  education: 'Education',
+  skills: 'Academy',
+  jobs: 'Jobs & Careers',
+  collaboration: 'Partner Network',
+};
 
 function validateInput(value: string, field: string): string | null {
   const v = value.trim();
@@ -89,11 +108,14 @@ export function Chatbot() {
 
   const mainOptions = [
     { label: 'Education', value: 'education', icon: GraduationCap },
-    { label: 'Jobs', value: 'jobs', icon: Briefcase },
-    { label: 'Skill Courses', value: 'skills', icon: Brain },
-    { label: 'Collaboration', value: 'collaboration', icon: Users },
-    { label: 'Export–Import', value: 'export-import', icon: Ship },
-    { label: 'Digital Services', value: 'digital', icon: Code2 },
+    { label: 'Counselling', value: 'counselling', icon: HeartHandshake },
+    { label: 'Academy', value: 'skills', icon: BookOpen },
+    { label: 'Import-Export', value: 'import-export', icon: Ship },
+    { label: 'Technology', value: 'technology', icon: Code2 },
+    { label: 'Jobs & Careers', value: 'jobs', icon: Briefcase },
+    { label: 'Consulting', value: 'consulting', icon: Compass },
+    { label: 'Global Opportunities', value: 'global', icon: Globe },
+    { label: 'Partner Network', value: 'collaboration', icon: Handshake },
   ];
 
   const [dynamicOptions, setDynamicOptions] = useState(mainOptions);
@@ -142,7 +164,8 @@ export function Chatbot() {
     const loadHistory = async () => {
       const history = await chatDB.getMessages();
       if (history.length > 0) {
-        setMessages(history);
+        // Saved chats from before the ecosystem update still carry the old greeting — show the current one.
+        setMessages(history.map(m => (m.type === 'bot' && m.text.startsWith('Hi,\nI’m the GlofiHub AI Assistant —') ? { ...m, text: INTRO_TEXT } : m)));
       } else {
         const initialMsg: ChatMessage = {
           type: 'bot',
@@ -194,11 +217,9 @@ export function Chatbot() {
     }, 1000);
   };
 
-  // Export–Import / Digital: short intro from DIVISIONS, never enters the multi-step flows.
+  // Counselling / Import-Export / Consulting / Technology / Global Opportunities: short info reply from DIVISIONS,
+  // never enters the multi-step flows.
   const showDivision = async (slug: string) => {
-    const division = DIVISIONS.find(d => d.slug === slug);
-    if (!division) return;
-
     // Make sure no flow state is left behind (e.g. a stale persisted flow after a reload).
     setCurrentFlow(null);
     setFlowStep(0);
@@ -207,21 +228,57 @@ export function Chatbot() {
     await chatDB.saveUserData('flowStep', 0);
     await chatDB.saveUserData('collectedData', {});
 
-    const soonNote = division.status === 'soon'
-      ? '\n\nThis business is launching soon — message us to register your interest.'
+    const division = DIVISIONS.find(d => d.slug === slug);
+    if (!division) {
+      askNext('Sorry, I couldn’t load that section right now. Please pick another option:', mainOptions);
+      return;
+    }
+
+    // Businesses with a website of their own also get an "Open … website" quick reply (listed first: it's the main action).
+    const websiteOption = DIVISION_WEBSITE_SLUGS.includes(division.slug)
+      ? [{ label: `Open ${division.short} website`, value: `open:${division.slug}`, icon: ExternalLink }]
+      : [];
+
+    if (division.slug === 'counselling') {
+      // Counselling is not a chat flow: it lives on its own website (student portal + secure in-app chat).
+      askNext(`${division.name} has its own website — with a student portal (sign up / login) and secure in-app chat.\n\nOpen it to get started, or message us on WhatsApp for free counselling.`, [
+        ...websiteOption,
+        { label: 'Free counselling on WhatsApp', value: `whatsapp:${division.slug}`, icon: MessageCircle },
+        { label: 'Restart', value: 'restart', icon: RotateCcw }
+      ]);
+      return;
+    }
+
+    const topics = (division.categories ?? []).slice(0, 4);
+    const topicsNote = topics.length > 0
+      ? `\n\nWhat’s covered:\n${topics.map(t => `• ${t}`).join('\n')}`
       : '';
-    askNext(`Here's a quick look at ${division.name}:\n\n${division.description}${soonNote}\n\nWould you like to talk to our team?`, [
+    const soonNote = division.status === 'soon'
+      ? '\n\nThis is launching soon — message us to register your interest.'
+      : '';
+    askNext(`Here's a quick look at ${division.name}:\n\n${division.description}${topicsNote}${soonNote}\n\nWould you like to talk to our team?`, [
+      ...websiteOption,
       { label: 'Connect on WhatsApp', value: `whatsapp:${division.slug}`, icon: MessageCircle },
       { label: 'Restart', value: 'restart', icon: RotateCcw }
     ]);
+  };
+
+  // "Open … website" quick replies. A full page load on purpose: every site's layout mounts its own chatbot, so the
+  // next site starts with a fresh, closed chat (history lives in IndexedDB) and no router context is needed here.
+  const openWebsite = (slug: string) => {
+    const path = DIVISIONS.find(d => d.slug === slug)?.href;
+    if (!path) return;
+    setIsOpen(false);
+    // Already on that website's home page: just close the chat instead of reloading the page.
+    if (window.location.pathname !== path) window.location.assign(path);
   };
 
   const handleOption = async (label: string, value: string) => {
     await addMessage('user', label);
     setDynamicOptions([]);
 
-    if (DIVISION_OPTION_SLUGS.includes(value)) {
-      await showDivision(value);
+    if (Object.prototype.hasOwnProperty.call(DIVISION_OPTION_SLUGS, value)) {
+      await showDivision(DIVISION_OPTION_SLUGS[value]);
       return;
     }
 
@@ -452,7 +509,7 @@ export function Chatbot() {
         influencer: 'Influencer / Creator',
         franchise: 'Franchise / City Partner'
       };
-      const label = typeLabel[value] || 'Collaboration';
+      const label = typeLabel[value] || 'Partner Network';
       askNext(`Great choice — ${label}! Please type your Full Name:`);
     }
   };
@@ -480,35 +537,62 @@ export function Chatbot() {
 
     // Keyword based flow starting
     if (!currentFlow) {
-      // Group businesses first (whole-word matches, so "apply" never matches "app").
+      // Global Opportunities first: "abroad job" / "scholarship abroad" must not fall into the
+      // generic Jobs / Education keywords below.
+      if (/scholarship|fellowship|internship|abroad jobs?|jobs? abroad|international jobs?|overseas jobs?/.test(lowerInput)) {
+        handleOption('Global Opportunities', 'global');
+        return;
+      }
+      // Partner Network before Jobs ("network" contains "work").
+      if (/\b(partner|partners|partnership|partnerships|franchise|referral|referrals|collaborate|collaboration)\b/.test(lowerInput)) {
+        handleOption('Partner Network', 'collaboration');
+        return;
+      }
+      // Counselling (student portal): unambiguous account / counsellor words win over the generic keywords below.
+      // The looser ones ("sign up", "register", "counselling") are checked last so they never steal course / job / MBBS enquiries.
+      if (/\b(log[\s-]?in(?:to)?|sign[\s-]?in(?:to)?|students?[\s-]?portal|counsell?ors?)\b/.test(lowerInput)) {
+        handleOption('Counselling', 'counselling');
+        return;
+      }
+      // Technology (whole-word matches, so "apply" never matches "app").
       // Skipped when the text is clearly about jobs / courses so those keep routing as before.
-      const isCareerOrCourse = /job|placement|course|learn|skill/.test(lowerInput);
+      const isCareerOrCourse = /job|placement|course|learn|skill|academy/.test(lowerInput);
       if (!isCareerOrCourse) {
-        if (/\b(export|exports|exporting|import|imports|importing|trade|trading)\b/.test(lowerInput)) {
-          handleOption('Export–Import', 'export-import');
-          return;
-        }
-        if (/\b(website|websites|app|apps|marketing|seo)\b/.test(lowerInput)) {
-          handleOption('Digital Services', 'digital');
+        if (/\b(website|websites|web|app|apps|software|crm|erp|automation|chatbot|chatbots|saas|marketing|seo|ai agents?)\b/.test(lowerInput)) {
+          handleOption('Technology', 'technology');
           return;
         }
       }
+      // Import-Export (whole-word matches, so "important" never matches "import"). Job / course wording keeps routing as before.
+      if (!isCareerOrCourse && /\b(imports?|importing|importers?|exports?|exporting|exporters?|trade|trading|shipping|shipments?|logistics)\b/.test(lowerInput)) {
+        handleOption('Import-Export', 'import-export');
+        return;
+      }
       if (lowerInput.includes('job') || lowerInput.includes('work') || lowerInput.includes('placement')) {
-        handleOption('Jobs', 'jobs');
+        handleOption('Jobs & Careers', 'jobs');
         return;
       }
       if (lowerInput.includes('mbbs') || lowerInput.includes('study') || lowerInput.includes('education') || lowerInput.includes('abroad')) {
         handleOption('Education', 'education');
         return;
       }
-      if (lowerInput.includes('skill') || lowerInput.includes('course') || lowerInput.includes('learn')) {
-        handleOption('Skill Courses', 'skills');
+      if (lowerInput.includes('academy') || lowerInput.includes('skill') || lowerInput.includes('course') || lowerInput.includes('learn')) {
+        handleOption('Academy', 'skills');
+        return;
+      }
+      if (lowerInput.includes('consult') || lowerInput.includes('advice') || lowerInput.includes('advisory')) {
+        handleOption('Consulting', 'consulting');
+        return;
+      }
+      // Looser Counselling words: also used for courses, jobs and MBBS enquiries, so they only count when nothing above matched.
+      if (/\b(sign[\s-]?up|register|registration|counsell?ing)\b/.test(lowerInput)) {
+        handleOption('Counselling', 'counselling');
         return;
       }
 
       // No flow is active and nothing matched: point to the menu rather than feeding
       // free text into the step engine (which assumes a flow is running).
-      askNext('I can help with Education, Jobs, Skill Courses, Collaboration, Export–Import or Digital Services. Please pick an option:', mainOptions);
+      askNext('I can help with Education, Counselling, Academy, Import-Export, Technology, Jobs & Careers, Consulting, Global Opportunities or the Partner Network. Please pick an option:', mainOptions);
       return;
     }
 
@@ -664,7 +748,7 @@ export function Chatbot() {
     setUserInput('');
   };
 
-  // `divisionSlug` is set for the Export–Import / Digital quick replies (no flow data to send).
+  // `divisionSlug` is set for the Counselling / Import-Export / Consulting / Technology / Global Opportunities quick replies (no flow data to send).
   const handleWhatsApp = (divisionSlug?: string) => {
     const division = divisionSlug ? DIVISIONS.find(d => d.slug === divisionSlug) : undefined;
     let message: string;
@@ -673,7 +757,7 @@ export function Chatbot() {
       message = `Hi GlofiHub, I'm interested in ${division.name}. I found it on your website and would like to know more.`;
     } else {
       message = `Hi GlofiHub, I have completed the consultation flow on your website.\n\n`;
-      message += `Flow: ${currentFlow}\n`;
+      message += `Flow: ${(currentFlow && FLOW_LABELS[currentFlow]) || currentFlow}\n`;
       Object.entries(collectedData).forEach(([key, val]) => {
         if (key !== 'initial' && !key.startsWith('input_')) {
           message += `${key.charAt(0).toUpperCase() + key.slice(1)}: ${val}\n`;
@@ -829,6 +913,7 @@ export function Chatbot() {
                     onClick={() => {
                       if (opt.value === 'whatsapp') handleWhatsApp();
                       else if (opt.value.startsWith('whatsapp:')) handleWhatsApp(opt.value.slice('whatsapp:'.length));
+                      else if (opt.value.startsWith('open:')) openWebsite(opt.value.slice('open:'.length));
                       else if (opt.value === 'restart') handleReset();
                       else handleOption(opt.label, opt.value);
                     }}

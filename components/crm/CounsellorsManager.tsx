@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useTransition } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -30,19 +31,19 @@ export function CounsellorsManager({ counsellors }: { counsellors: CounsellorRow
     start(async () => { await setCounsellorActive(id, !active); router.refresh(); });
 
   const remove = (id: string) => {
-    if (!confirm('Delete this counsellor? Their account will be removed.')) return;
+    if (!confirm('Delete this staff account? It will be removed and their students will be unassigned.')) return;
     start(async () => { await deleteCounsellor(id); router.refresh(); });
   };
 
   return (
     <div className="space-y-5">
       <div className="flex justify-end">
-        <Button onClick={() => setShowForm((v) => !v)}><UserPlus size={16} /> {showForm ? 'Close' : 'Add Counsellor'}</Button>
+        <Button onClick={() => setShowForm((v) => !v)}><UserPlus size={16} /> {showForm ? 'Close' : 'Add Staff'}</Button>
       </div>
 
       {showForm && (
         <Card className="p-5">
-          <h3 className="font-display font-bold text-foreground mb-4">New Counsellor</h3>
+          <h3 className="font-display font-bold text-foreground mb-4">New Staff Member</h3>
           <form onSubmit={handleSubmit(onCreate)} className="grid sm:grid-cols-2 gap-3.5">
             <div><Label>Full name</Label><Input {...register('full_name')} /><FieldError>{errors.full_name?.message}</FieldError></div>
             <div><Label>Department</Label><Input placeholder="e.g. MBBS Abroad" {...register('department')} /><FieldError>{errors.department?.message}</FieldError></div>
@@ -50,7 +51,7 @@ export function CounsellorsManager({ counsellors }: { counsellors: CounsellorRow
             <div><Label>Phone</Label><Input {...register('phone')} /></div>
             <div className="sm:col-span-2"><Label>Temporary password</Label><Input type="text" {...register('password')} /><FieldError>{errors.password?.message}</FieldError></div>
             <div className="sm:col-span-2 flex items-center gap-3">
-              <Button type="submit" loading={isSubmitting}>Create Counsellor</Button>
+              <Button type="submit" loading={isSubmitting}>Create Staff Account</Button>
               {notice && <span className="text-xs font-medium text-rose-600">{notice}</span>}
             </div>
           </form>
@@ -58,7 +59,7 @@ export function CounsellorsManager({ counsellors }: { counsellors: CounsellorRow
       )}
 
       {counsellors.length === 0 ? (
-        <Card className="p-10 text-center text-sm text-foreground/50">No counsellors yet. Add your first one.</Card>
+        <Card className="p-10 text-center text-sm text-foreground/50">No staff yet. Add your first staff member.</Card>
       ) : (
         <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-4">
           {counsellors.map((c) => (
@@ -69,7 +70,7 @@ export function CounsellorsManager({ counsellors }: { counsellors: CounsellorRow
                     {c.full_name[0]?.toUpperCase()}
                   </span>
                   <div className="min-w-0">
-                    <p className="font-display font-bold text-foreground truncate">{c.full_name}</p>
+                    <Link href={`/admin/counsellors/${c.id}`} className="block font-display font-bold text-foreground truncate hover:text-primary hover:underline">{c.full_name}</Link>
                     <p className="text-[11px] text-foreground/50">{c.department}</p>
                   </div>
                 </div>

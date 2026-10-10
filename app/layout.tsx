@@ -5,6 +5,7 @@ import { ThemeProvider } from '@/components/ThemeProvider'
 import { ScrollReveal } from '@/components/ScrollReveal'
 import { GetStartedModal } from '@/components/GetStartedModal'
 import { StudentForm } from '@/components/StudentForm'
+import { UtmCapture } from '@/components/UtmCapture'
 import { SITE } from '@/lib/site'
 import { DIVISIONS } from '@/lib/divisions'
 
@@ -99,8 +100,9 @@ const ORG_ID = `${SITE.url}/#organization`
 const DIVISION_SCHEMA_TYPE: Record<string, string> = {
   education: 'EducationalOrganization',
   academy: 'EducationalOrganization',
-  'export-import': 'Organization',
-  digital: 'ProfessionalService',
+  counselling: 'EducationalOrganization',
+  consulting: 'ProfessionalService',
+  technology: 'ProfessionalService',
 }
 
 // Plain data only — DIVISIONS carries icon components that must not reach JSON.stringify.
@@ -169,6 +171,7 @@ export default function RootLayout({
       <body className="font-sans bg-background text-foreground antialiased">
         <ThemeProvider>
           <ScrollReveal />
+          <UtmCapture />
           {children}
           <GetStartedModal />
           <StudentForm />

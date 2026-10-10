@@ -1,21 +1,20 @@
 import Link from 'next/link';
 import { Facebook, Instagram, Linkedin, Youtube, MapPin, Phone, Mail } from 'lucide-react';
-import { DIVISIONS } from '@/lib/divisions';
+import { DIVISIONS, PRIMARY_DIVISIONS, type Division } from '@/lib/divisions';
 import { SITE } from '@/lib/site';
 
-const company = [
-  { label: 'About Us', href: '/about' },
-  { label: 'Services', href: '/services' },
-  { label: 'Portfolio', href: '/#portfolio' },
+// Company links that have real destinations.
+const companyLinks = [
+  { label: 'About', href: '/about' },
+  { label: 'Our Team', href: '/about#team' },
   { label: 'Contact', href: '/#contact' },
 ];
 
-const education = [
-  { label: 'Education Abroad', href: '/#service-education' },
-  { label: 'Job Placement', href: '/#service-jobs' },
-  { label: 'Skill Courses', href: '/#service-skills' },
-  { label: 'Collaboration', href: '/#service-partnerships' },
-];
+// No pages exist yet for these, so they render as plain muted text (never dead links).
+const companyPending = ['Careers', 'Blog'];
+
+// Legal pages do not exist yet — plain muted text only, no links.
+const legalPending = ['Privacy Policy', 'Terms of Service', 'Refund Policy', 'Disclaimer', 'Cookie Policy'];
 
 const socials = [
   { name: 'Facebook', href: SITE.social.facebook, Icon: Facebook },
@@ -32,13 +31,41 @@ const ring =
 const linkClass = `group inline-flex items-center gap-2 rounded-md text-sm font-medium text-white/70 hover:text-white transition-colors ${ring}`;
 const dot =
   'w-1.5 h-1.5 shrink-0 rounded-full bg-emerald-400/60 group-hover:bg-emerald-400 transition-colors';
+// Plain (non-link) items: muted, not interactive.
+const pendingClass =
+  'inline-flex items-center gap-2 text-sm font-medium text-white/55 cursor-default select-none';
+const pendingDot = 'w-1.5 h-1.5 shrink-0 rounded-full bg-white/20';
 const headingClass = 'font-display text-sm font-bold text-white mb-5 tracking-wide';
+const subHeadingClass = 'font-display text-xs font-semibold text-emerald-300 mb-3 tracking-wide';
 const iconTile =
   'w-9 h-9 rounded-xl bg-white/10 border border-white/15 flex items-center justify-center text-emerald-300 shrink-0';
 
+// "Explore" has two sub-groups: the GlofiHub websites (the primary businesses), then the rest.
+const moreDivisions = DIVISIONS.filter((d) => !d.primary);
+
+function ExploreList({ labelId, items }: { labelId: string; items: Division[] }) {
+  return (
+    <ul aria-labelledby={labelId} className="space-y-3">
+      {items.map((d) => (
+        <li key={d.slug}>
+          <Link href={d.href} className={`${linkClass} whitespace-nowrap`}>
+            <span className={dot} aria-hidden="true" />
+            <span>{d.short}</span>
+            {d.status === 'soon' && (
+              <span className="rounded-full border border-amber-300/30 bg-amber-300/15 px-1.5 py-0.5 text-[10px] font-bold uppercase leading-none tracking-wide text-amber-200">
+                Soon
+              </span>
+            )}
+          </Link>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 export function Footer() {
   return (
-    <footer className="relative overflow-hidden bg-gradient-to-br from-[#0A2F6B] via-[#0A2F6B] to-blue-950 text-white pt-20">
+    <footer className="relative overflow-hidden bg-gradient-to-br from-[#0A2F6B] via-[#0A2F6B] to-blue-950 text-white pt-16 md:pt-20">
       {/* Ambient glow */}
       <div aria-hidden="true" className="pointer-events-none absolute inset-0">
         <div className="absolute -top-32 -left-24 w-[420px] h-[420px] rounded-full bg-blue-500/15 blur-[120px] animate-aurora" />
@@ -48,10 +75,10 @@ export function Footer() {
         />
       </div>
 
-      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-14">
+      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12 md:pb-14">
         <div data-reveal className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-10 lg:gap-8">
           {/* Brand */}
-          <div className="sm:col-span-2 lg:col-span-3 space-y-6">
+          <div className="sm:col-span-2 lg:col-span-3 space-y-5">
             <Link
               href="/"
               aria-label={`${SITE.name} home`}
@@ -70,11 +97,12 @@ export function Footer() {
               </span>
               <span className="font-display text-2xl font-extrabold tracking-tight">{SITE.name}</span>
             </Link>
+            <p className="text-sm font-semibold tracking-wide text-emerald-300">{SITE.tagline}</p>
             <p className="text-white/70 text-sm leading-relaxed font-medium max-w-sm">
-              A group of businesses across education, skills training, global trade and digital services.
+              Connecting learners, professionals, institutions and businesses with the education, skills,
+              services and opportunities they need to move forward.
             </p>
-            <p className="text-xs font-semibold tracking-wide text-emerald-300">{SITE.tagline}</p>
-            <ul className="flex flex-wrap gap-3" aria-label="Social media">
+            <ul className="flex flex-wrap gap-3 pt-1" aria-label="Social media">
               {socials.map(({ name, href, Icon }) => (
                 <li key={name}>
                   <a
@@ -91,26 +119,27 @@ export function Footer() {
             </ul>
           </div>
 
-          {/* Our Businesses */}
-          <nav aria-labelledby="footer-businesses" className="lg:col-span-2">
-            <h3 id="footer-businesses" className={headingClass}>
-              Our Businesses
+          {/* Explore — the GlofiHub websites, then the other businesses */}
+          <nav aria-labelledby="footer-explore" className="lg:col-span-2">
+            <h3 id="footer-explore" className={headingClass}>
+              Explore
             </h3>
-            <ul className="space-y-3">
-              {DIVISIONS.map((d) => (
-                <li key={d.slug}>
-                  <Link href={d.href} className={linkClass}>
-                    <span className={dot} aria-hidden="true" />
-                    <span>{d.name}</span>
-                    {d.status === 'soon' && (
-                      <span className="rounded-full border border-amber-300/30 bg-amber-300/15 px-1.5 py-0.5 text-[10px] font-bold uppercase leading-none tracking-wide text-amber-200">
-                        Soon
-                      </span>
-                    )}
-                  </Link>
-                </li>
-              ))}
-            </ul>
+            <div className="space-y-6">
+              <div>
+                <h4 id="footer-websites" className={subHeadingClass}>
+                  GlofiHub websites
+                </h4>
+                <ExploreList labelId="footer-websites" items={PRIMARY_DIVISIONS} />
+              </div>
+              {moreDivisions.length > 0 && (
+                <div>
+                  <h4 id="footer-more" className={subHeadingClass}>
+                    More
+                  </h4>
+                  <ExploreList labelId="footer-more" items={moreDivisions} />
+                </div>
+              )}
+            </div>
           </nav>
 
           {/* Company */}
@@ -119,36 +148,44 @@ export function Footer() {
               Company
             </h3>
             <ul className="space-y-3">
-              {company.map((link) => (
+              {companyLinks.map((link) => (
                 <li key={link.label}>
                   <Link href={link.href} className={linkClass}>
                     <span className={dot} aria-hidden="true" />
                     {link.label}
                   </Link>
+                </li>
+              ))}
+              {companyPending.map((label) => (
+                <li key={label}>
+                  <span aria-disabled="true" className={pendingClass}>
+                    <span className={pendingDot} aria-hidden="true" />
+                    {label}
+                  </span>
                 </li>
               ))}
             </ul>
           </nav>
 
-          {/* GlofiHub Education */}
-          <nav aria-labelledby="footer-education" className="lg:col-span-2">
-            <h3 id="footer-education" className={headingClass}>
-              GlofiHub Education
+          {/* Legal */}
+          <div className="lg:col-span-2">
+            <h3 id="footer-legal" className={headingClass}>
+              Legal
             </h3>
-            <ul className="space-y-3">
-              {education.map((link) => (
-                <li key={link.label}>
-                  <Link href={link.href} className={linkClass}>
-                    <span className={dot} aria-hidden="true" />
-                    {link.label}
-                  </Link>
+            <ul aria-labelledby="footer-legal" className="space-y-3">
+              {legalPending.map((label) => (
+                <li key={label}>
+                  <span aria-disabled="true" className={pendingClass}>
+                    <span className={pendingDot} aria-hidden="true" />
+                    {label}
+                  </span>
                 </li>
               ))}
             </ul>
-          </nav>
+          </div>
 
           {/* Office & Contact */}
-          <div className="sm:col-span-2 lg:col-span-3">
+          <div className="lg:col-span-3">
             <h3 className={headingClass}>Office &amp; Contact</h3>
             <address className="space-y-4 not-italic">
               <div className="flex gap-3 items-start">
@@ -183,16 +220,26 @@ export function Footer() {
       </div>
 
       {/* Bottom bar */}
-      <div className="relative z-10 border-t border-white/10 py-7 px-4">
-        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-3 text-center sm:text-left">
-          <p className="text-xs font-medium text-white/60">
-            © {new Date().getFullYear()} GlofiHub — Global Future Initiative Hub. All rights reserved.
+      <div className="relative z-10 border-t border-white/10 py-6 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto flex flex-col lg:flex-row justify-between items-center gap-2 lg:gap-4 text-center lg:text-left">
+          <p className="text-xs font-medium text-white/60 leading-relaxed">
+            © {new Date().getFullYear()} {SITE.legalName}. All Rights Reserved.
+            <span aria-hidden="true" className="hidden sm:inline mx-2 text-white/30">
+              |
+            </span>
+            <span className="block sm:inline">Powered by {SITE.legalName}</span>
           </p>
-          {/* No policy pages exist yet, so these are plain muted text rather than dead `#` links. */}
-          <div className="flex gap-6 text-xs font-medium text-white/60 cursor-default select-none">
-            <span>Privacy Policy</span>
-            <span>Terms of Service</span>
-          </div>
+          <p className="text-[11px] font-medium text-white/60">
+            Technology partner:{' '}
+            <a
+              href="https://www.pragyaanlabs.space/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className={`rounded-sm text-white/70 underline decoration-white/25 underline-offset-2 hover:text-white hover:decoration-white/60 transition-colors ${ring}`}
+            >
+              Pragyaan Labs
+            </a>
+          </p>
         </div>
       </div>
     </footer>

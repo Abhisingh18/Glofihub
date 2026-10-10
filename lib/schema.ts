@@ -127,4 +127,29 @@ create index if not exists idx_payments_student on payments(student_id);
 create index if not exists idx_notes_student on notes(student_id);
 create index if not exists idx_notifications_user on notifications(user_id, read);
 create index if not exists idx_activity_user on activity_logs(user_id, created_at);
+
+-- Public website leads (contact form → CRM), with source / UTM attribution.
+create table if not exists leads (
+  id             uuid primary key default gen_random_uuid(),
+  name           text not null,
+  phone          text not null,
+  email          text not null,
+  location       text,
+  requirement    text not null,
+  contact_method text not null default 'whatsapp',
+  message        text,
+  source         text,
+  page           text,
+  landing_page   text,
+  referrer       text,
+  utm_source     text,
+  utm_medium     text,
+  utm_campaign   text,
+  utm_term       text,
+  utm_content    text,
+  status         text not null default 'new',
+  created_at     timestamptz not null default now()
+);
+create index if not exists idx_leads_status_created on leads(status, created_at desc);
+create index if not exists idx_leads_requirement on leads(requirement);
 `;

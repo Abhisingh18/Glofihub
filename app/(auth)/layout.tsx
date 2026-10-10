@@ -1,4 +1,5 @@
-import Link from 'next/link';
+import type { Metadata } from 'next';
+import { CounsellingLink } from '@/components/counselling/CounsellingLink';
 import { ArrowLeft, GraduationCap, MessagesSquare, ShieldCheck, BadgeCheck, Globe, Sparkles } from 'lucide-react';
 
 const HIGHLIGHTS = [
@@ -6,6 +7,12 @@ const HIGHLIGHTS = [
   { icon: MessagesSquare, title: 'Secure in-app chat', text: 'Talk to your counsellor — no numbers shared.' },
   { icon: ShieldCheck, title: 'Private & safe', text: 'Your data is protected end to end.' },
 ];
+
+// Account pages: keep them out of search results (robots.txt already disallows them).
+export const metadata: Metadata = {
+  title: 'Account',
+  robots: { index: false, follow: false },
+};
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -36,12 +43,12 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
 
         {/* Logo */}
         <div className="relative" data-reveal>
-          <Link href="/" className="inline-flex items-center gap-2.5 group">
+          <CounsellingLink className="inline-flex items-center gap-2.5 group">
             <span className="w-10 h-10 rounded-xl bg-white/15 ring-2 ring-white/25 flex items-center justify-center group-hover:scale-105 transition-transform">
               <GraduationCap size={20} />
             </span>
             <span className="font-display font-bold text-lg">GlofiHub</span>
-          </Link>
+          </CounsellingLink>
         </div>
 
         {/* Copy */}
@@ -93,9 +100,9 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
         <div aria-hidden className="lg:hidden pointer-events-none absolute -top-20 -right-16 w-72 h-72 rounded-full bg-primary/10 blur-3xl animate-aurora" />
         <div aria-hidden className="pointer-events-none absolute bottom-0 -left-16 w-72 h-72 rounded-full bg-emerald-500/5 blur-3xl" />
 
-        <Link href="/" className="relative inline-flex items-center gap-2 text-foreground/55 hover:text-foreground text-sm font-medium transition-colors w-fit">
-          <ArrowLeft size={16} className="transition-transform hover:-translate-x-0.5" /> Back to site
-        </Link>
+        <CounsellingLink className="relative inline-flex items-center gap-2 text-foreground/55 hover:text-foreground text-sm font-medium transition-colors w-fit">
+          <ArrowLeft size={16} className="transition-transform hover:-translate-x-0.5" /> Back to GlofiHub Counselling
+        </CounsellingLink>
 
         <div className="flex-1 flex items-center justify-center">
           <div className="w-full max-w-md py-8 animate-hero-rise">

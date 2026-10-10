@@ -5,7 +5,7 @@ import { revalidatePath } from 'next/cache';
 import { sql, one } from '@/lib/pg';
 import { requireRole } from '@/lib/auth';
 import { logActivity, notify } from '@/lib/activity';
-import { counsellorSchema, assignSchema, statusSchema, minutesSchema } from '@/lib/validations';
+import { counsellorSchema, assignSchema, statusSchema, minutesSchema, resetPasswordSchema } from '@/lib/validations';
 import { getOrCreateConversation } from '@/lib/conversations';
 
 type Result = { ok: boolean; error?: string };
@@ -104,3 +104,24 @@ export async function setStudentStatus(input: unknown): Promise<Result> {
   revalidatePath('/admin/students');
   return { ok: true };
 }
+
+/**
+ * Admin sets a new password for a student or staff member (the "forgot password" page tells users to
+ * contact the administrator). Administrator accounts are not resettable here.
+ */
+export async function resetUserPassword(input: unknown): Promise<Result> {
+  const admin = await requireRole('super_admin');
+  const parsed = resetPasswordSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: parsed.error.issues[0].message };
+
+  const target = await one<{ id: string; role: string }>(`select id, role from users where id = $1`, [parsed.data.user_id]);
+  if (!target) return { ok: false, error: 'User not found.' };
+  if (target.role === 'super_admin') return { ok: false, error: 'Administrator passwords cannot be reset here.' };
+
+  const hash = await bcrypt.hash(parsed.data.password, 10);
+  await sql(`update users set password_hash = $2 where id = $1`, [target.id, hash]);
+  await logActivity(admin.id, 'Reset user password', { user_id: target.id, role: target.role });
+  await notify(target.id, 'security', 'Password changed', 'An administrator reset your password. Please sign in with the new one.');
+  return { ok: true };
+}
+

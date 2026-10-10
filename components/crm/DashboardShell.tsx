@@ -6,7 +6,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import {
   Menu, X, LogOut, GraduationCap, type LucideIcon,
   LayoutDashboard, Users, UserCog, CreditCard, Network, BarChart3, Settings,
-  MessagesSquare, UserCircle,
+  MessagesSquare, UserCircle, Inbox,
 } from 'lucide-react';
 import { signOut } from '@/lib/actions/auth';
 import { cn } from '@/lib/utils';
@@ -30,10 +30,11 @@ const NAV_BY_ROLE: Record<UserRole, NavItem[]> = {
   super_admin: [
     { href: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { href: '/admin/students', label: 'Students', icon: Users },
-    { href: '/admin/counsellors', label: 'Counsellors', icon: UserCog },
+    { href: '/admin/leads', label: 'Leads', icon: Inbox },
+    { href: '/admin/counsellors', label: 'Staff', icon: UserCog },
     { href: '/admin/assignments', label: 'Assignments', icon: Network },
     { href: '/admin/payments', label: 'Payments', icon: CreditCard },
-    { href: '/admin/analytics', label: 'Analytics', icon: BarChart3 },
+    { href: '/admin/analytics', label: 'Activity', icon: BarChart3 },
     { href: '/admin/settings', label: 'Settings', icon: Settings },
   ],
   counsellor: [
@@ -62,7 +63,8 @@ export function DashboardShell({ user, children }: Props) {
 
   const logout = async () => {
     await signOut();
-    router.push('/login');
+    // Back to where each kind of user signs in: the admin portal, the counselling site, or the shared login.
+    router.push(user.role === 'super_admin' ? '/counselling/admin' : user.role === 'student' ? '/counselling' : '/login');
     router.refresh();
   };
 
