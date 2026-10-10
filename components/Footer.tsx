@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { Facebook, Instagram, Linkedin, Youtube, MapPin, Phone, Mail } from 'lucide-react';
-import { DIVISIONS } from '@/lib/divisions';
+import { DIVISIONS, PRIMARY_DIVISIONS, type Division } from '@/lib/divisions';
 import { SITE } from '@/lib/site';
 
 // Company links that have real destinations.
@@ -36,8 +36,32 @@ const pendingClass =
   'inline-flex items-center gap-2 text-sm font-medium text-white/55 cursor-default select-none';
 const pendingDot = 'w-1.5 h-1.5 shrink-0 rounded-full bg-white/20';
 const headingClass = 'font-display text-sm font-bold text-white mb-5 tracking-wide';
+const subHeadingClass = 'font-display text-xs font-semibold text-emerald-300 mb-3 tracking-wide';
 const iconTile =
   'w-9 h-9 rounded-xl bg-white/10 border border-white/15 flex items-center justify-center text-emerald-300 shrink-0';
+
+// "Explore" has two sub-groups: the GlofiHub websites (the primary businesses), then the rest.
+const moreDivisions = DIVISIONS.filter((d) => !d.primary);
+
+function ExploreList({ labelId, items }: { labelId: string; items: Division[] }) {
+  return (
+    <ul aria-labelledby={labelId} className="space-y-3">
+      {items.map((d) => (
+        <li key={d.slug}>
+          <Link href={d.href} className={`${linkClass} whitespace-nowrap`}>
+            <span className={dot} aria-hidden="true" />
+            <span>{d.short}</span>
+            {d.status === 'soon' && (
+              <span className="rounded-full border border-amber-300/30 bg-amber-300/15 px-1.5 py-0.5 text-[10px] font-bold uppercase leading-none tracking-wide text-amber-200">
+                Soon
+              </span>
+            )}
+          </Link>
+        </li>
+      ))}
+    </ul>
+  );
+}
 
 export function Footer() {
   return (
@@ -95,26 +119,27 @@ export function Footer() {
             </ul>
           </div>
 
-          {/* Explore */}
+          {/* Explore — the GlofiHub websites, then the other businesses */}
           <nav aria-labelledby="footer-explore" className="lg:col-span-2">
             <h3 id="footer-explore" className={headingClass}>
               Explore
             </h3>
-            <ul className="space-y-3">
-              {DIVISIONS.map((d) => (
-                <li key={d.slug}>
-                  <Link href={d.href} className={linkClass}>
-                    <span className={dot} aria-hidden="true" />
-                    <span>{d.short}</span>
-                    {d.status === 'soon' && (
-                      <span className="rounded-full border border-amber-300/30 bg-amber-300/15 px-1.5 py-0.5 text-[10px] font-bold uppercase leading-none tracking-wide text-amber-200">
-                        Soon
-                      </span>
-                    )}
-                  </Link>
-                </li>
-              ))}
-            </ul>
+            <div className="space-y-6">
+              <div>
+                <h4 id="footer-websites" className={subHeadingClass}>
+                  GlofiHub websites
+                </h4>
+                <ExploreList labelId="footer-websites" items={PRIMARY_DIVISIONS} />
+              </div>
+              {moreDivisions.length > 0 && (
+                <div>
+                  <h4 id="footer-more" className={subHeadingClass}>
+                    More
+                  </h4>
+                  <ExploreList labelId="footer-more" items={moreDivisions} />
+                </div>
+              )}
+            </div>
           </nav>
 
           {/* Company */}

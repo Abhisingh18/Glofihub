@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { ArrowDown, Sparkles, Play, X, ShieldCheck, Users, Globe, MessageCircle } from 'lucide-react';
 import { Fragment, useState, useEffect, useRef } from 'react';
-import { DIVISIONS } from '@/lib/divisions';
+import { DIVISIONS, PRIMARY_DIVISIONS, type Division } from '@/lib/divisions';
 import { SITE } from '@/lib/site';
 
 interface CountryPointer {
@@ -65,6 +65,49 @@ function CountUp({ value, className }: { value: string; className?: string }) {
 
 const FOCUS_RING =
   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary dark:focus-visible:ring-blue-300 focus-visible:ring-offset-2 focus-visible:ring-offset-background';
+
+/** The businesses without a website of their own (shown as a smaller secondary row). */
+const MORE_DIVISIONS = DIVISIONS.filter((d) => !d.primary);
+
+// Ecosystem chip sizes: `lg` = the GlofiHub websites (prominent), `sm` = everything else (secondary row).
+// Sized so the five `lg` chips fit one row inside the hero column down to 768px wide.
+const CHIP_SIZES = {
+  lg: {
+    link: 'gap-1.5 pl-1.5 pr-3 py-1.5 bg-white/70 dark:bg-white/10 backdrop-blur-md border-foreground/10 dark:border-white/15 text-xs text-foreground shadow-sm hover:shadow-md',
+    icon: 'w-6 h-6',
+    glyph: 13,
+    soon: 'text-[10px]',
+  },
+  sm: {
+    link: 'gap-1.5 pl-1 pr-2.5 py-1 bg-white/45 dark:bg-white/5 backdrop-blur-sm border-foreground/10 dark:border-white/10 text-[11px] text-foreground/80 hover:text-foreground hover:bg-white/70 dark:hover:bg-white/10',
+    icon: 'w-5 h-5',
+    glyph: 11,
+    soon: 'text-[9px]',
+  },
+} as const;
+
+function EcosystemChip({ d, size }: { d: Division; size: keyof typeof CHIP_SIZES }) {
+  const s = CHIP_SIZES[size];
+  return (
+    <Link
+      href={d.href}
+      className={`group inline-flex items-center whitespace-nowrap rounded-full border font-semibold hover:-translate-y-0.5 hover:border-primary/40 dark:hover:border-blue-300/50 transition-all duration-300 ${s.link} ${FOCUS_RING}`}
+    >
+      <span className={`flex items-center justify-center rounded-full text-white ${d.iconBg} group-hover:scale-110 transition-transform duration-300 ${s.icon}`}>
+        <d.icon size={s.glyph} aria-hidden="true" />
+      </span>
+      <span>{d.short}</span>
+      {d.status === 'soon' && (
+        <>
+          <span aria-hidden="true" className={`font-bold uppercase tracking-wider px-1 py-0.5 rounded-full bg-foreground/10 dark:bg-white/15 text-foreground/70 ${s.soon}`}>
+            Soon
+          </span>
+          <span className="sr-only">(launching soon)</span>
+        </>
+      )}
+    </Link>
+  );
+}
 
 export function Hero() {
   const whatsappLink = `https://wa.me/${SITE.whatsapp}?text=${encodeURIComponent('Hi GlofiHub, I would like to talk to an expert.')}`;
@@ -288,41 +331,49 @@ export function Hero() {
             <span className="underline-offset-4 group-hover:underline">Not sure where to start? Ask our AI assistant</span>
           </button>
 
-          {/* Ecosystem chips — quick links to all seven verticals.
-              Mobile/tablet: one swipeable row that bleeds to the screen edges (centred when it
-              fits, start-aligned when it overflows). md+: two centred rows (first 4, then 3). */}
+          {/* Ecosystem chips — quick links into the group. The GlofiHub websites (the primary businesses) are
+              prominent chips; the other businesses sit in a smaller second row on md+ (two centred rows max).
+              Small screens get ONE swipeable row that bleeds to the screen edges (centred when it fits,
+              start-aligned when it overflows): the websites plus a "+N more" chip that jumps to #businesses.
+              The nav bleeds 16px past the column on md+ so the five prominent chips always share one row. */}
           <nav
             aria-label="The GlofiHub ecosystem"
-            className="animate-hero-rise mt-6 self-stretch -mx-4 sm:-mx-6 md:mx-0"
+            className="animate-hero-rise mt-6 self-stretch -mx-4 sm:-mx-6 md:-mx-4"
             style={{ animationDelay: '0.7s' }}
           >
-            <ul className="flex flex-nowrap md:flex-wrap md:justify-center gap-x-2 overflow-x-auto md:overflow-visible px-4 sm:px-6 md:px-0 py-1.5 md:py-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden [mask-image:linear-gradient(to_right,transparent,black_16px,black_calc(100%_-_16px),transparent)] md:[mask-image:none]">
-              {DIVISIONS.map((d, i) => (
-                <Fragment key={d.slug}>
-                  <li className="shrink-0 md:my-1 max-md:first:ml-auto max-md:last:mr-auto">
-                    <Link
-                      href={d.href}
-                      className={`group inline-flex items-center gap-2 whitespace-nowrap rounded-full pl-1.5 pr-3.5 py-1.5 bg-white/70 dark:bg-white/10 backdrop-blur-md border border-foreground/10 dark:border-white/15 text-xs md:text-[13px] font-semibold text-foreground shadow-sm hover:-translate-y-0.5 hover:border-primary/40 dark:hover:border-blue-300/50 hover:shadow-md transition-all duration-300 ${FOCUS_RING}`}
-                    >
-                      <span className={`flex items-center justify-center w-6 h-6 rounded-full text-white ${d.iconBg} group-hover:scale-110 transition-transform duration-300`}>
-                        <d.icon size={13} aria-hidden="true" />
-                      </span>
-                      <span>{d.short}</span>
-                      {d.status === 'soon' && (
-                        <>
-                          <span aria-hidden="true" className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-foreground/10 dark:bg-white/15 text-foreground/70">
-                            Soon
-                          </span>
-                          <span className="sr-only">(launching soon)</span>
-                        </>
-                      )}
-                    </Link>
-                  </li>
-                  {/* md+: forced break after the 4th chip so the two rows are balanced */}
-                  {i === 3 && <li aria-hidden="true" className="hidden md:block basis-full h-0" />}
-                </Fragment>
+            <ul
+              aria-label="GlofiHub websites"
+              className="flex flex-nowrap md:flex-wrap md:justify-center gap-x-2 md:gap-x-1.5 overflow-x-auto md:overflow-visible px-4 sm:px-6 md:px-0 py-1.5 md:py-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden [mask-image:linear-gradient(to_right,transparent,black_16px,black_calc(100%_-_16px),transparent)] md:[mask-image:none]"
+            >
+              {PRIMARY_DIVISIONS.map((d) => (
+                <li key={d.slug} className="shrink-0 md:my-1 max-md:first:ml-auto max-md:last:mr-auto">
+                  <EcosystemChip d={d} size="lg" />
+                </li>
               ))}
+              {MORE_DIVISIONS.length > 0 && (
+                <li className="shrink-0 md:hidden max-md:last:mr-auto">
+                  <a
+                    href="#businesses"
+                    className={`group inline-flex items-center gap-1.5 whitespace-nowrap rounded-full pl-1.5 pr-3 py-1.5 bg-primary/10 dark:bg-white/10 backdrop-blur-md border border-primary/25 dark:border-white/20 text-xs font-bold text-primary dark:text-blue-200 shadow-sm hover:-translate-y-0.5 hover:bg-primary/15 dark:hover:bg-white/15 hover:shadow-md transition-all duration-300 ${FOCUS_RING}`}
+                  >
+                    <span className="flex items-center justify-center w-6 h-6 rounded-full bg-primary dark:bg-blue-500 text-white">
+                      <ArrowDown size={13} className="group-hover:translate-y-0.5 transition-transform" aria-hidden="true" />
+                    </span>
+                    <span>+{MORE_DIVISIONS.length} more</span>
+                    <span className="sr-only"> businesses — see them all</span>
+                  </a>
+                </li>
+              )}
             </ul>
+            {MORE_DIVISIONS.length > 0 && (
+              <ul aria-label="More from GlofiHub" className="hidden md:flex flex-wrap justify-center gap-x-1.5 mt-0.5">
+                {MORE_DIVISIONS.map((d) => (
+                  <li key={d.slug} className="shrink-0 my-0.5">
+                    <EcosystemChip d={d} size="sm" />
+                  </li>
+                ))}
+              </ul>
+            )}
           </nav>
 
           {/* Trust panel — stats + on-the-ground presence in one glass card */}
