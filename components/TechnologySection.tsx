@@ -2,99 +2,9 @@
 
 import Link from 'next/link';
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
-import {
-  ArrowRight, ArrowUpRight, Bot, BrainCircuit, Boxes, Cloud, Code2, Database, Globe, Layers,
-  LayoutDashboard, Megaphone, MessageCircle, MessageSquareText, Monitor, Package, Plug, Rocket,
-  Search, Share2, ShoppingCart, Smartphone, Sparkles, Users, Workflow,
-  type LucideIcon,
-} from 'lucide-react';
+import { ArrowRight, ArrowUpRight, Code2, MessageCircle } from 'lucide-react';
 import { DIVISIONS } from '@/lib/divisions';
-
-interface TechItem {
-  name: string;
-  detail: string;
-  icon: LucideIcon;
-}
-
-interface TechCategory {
-  /** Matches the anchor id of the same category on /services. */
-  id: string;
-  title: string;
-  tagline: string;
-  icon: LucideIcon;
-  /** Gradient for the category icon tile. */
-  tile: string;
-  items: TechItem[];
-}
-
-/** The five GlofiHub Technology categories (Ecosystem Blueprint §4). */
-const CATEGORIES: TechCategory[] = [
-  {
-    id: 'web-app-development',
-    title: 'Web & App Development',
-    tagline: 'Websites, apps and online stores — built end to end for your business.',
-    icon: Code2,
-    tile: 'from-cyan-500 to-blue-600',
-    items: [
-      { name: 'Websites', detail: 'Fast, responsive, SEO-ready websites tailored to your brand.', icon: Globe },
-      { name: 'Web Apps', detail: 'Scalable web apps and dashboards with secure logins.', icon: Monitor },
-      { name: 'Android / iOS', detail: 'Mobile apps with a smooth, native-like experience.', icon: Smartphone },
-      { name: 'E-commerce', detail: 'Feature-rich online stores with payments and inventory.', icon: ShoppingCart },
-    ],
-  },
-  {
-    id: 'ai-automation',
-    title: 'AI & Automation',
-    tagline: 'Smart assistants and automation that take repetitive work off your plate.',
-    icon: BrainCircuit,
-    tile: 'from-violet-500 to-fuchsia-600',
-    items: [
-      { name: 'AI Assistants', detail: 'Assistants that help your customers and your team get answers fast.', icon: Sparkles },
-      { name: 'AI Agents', detail: 'Agents that take on routine tasks and work around the clock.', icon: Bot },
-      { name: 'Automation', detail: 'Automate workflows, replies and data with AI.', icon: Workflow },
-      { name: 'Chatbots', detail: 'Chatbots that talk to customers and capture enquiries 24/7.', icon: MessageSquareText },
-    ],
-  },
-  {
-    id: 'business-systems',
-    title: 'Business Systems',
-    tagline: 'Systems that keep leads, people and operations organised in one place.',
-    icon: Database,
-    tile: 'from-emerald-500 to-green-600',
-    items: [
-      { name: 'CRM', detail: 'Track leads, customers and follow-ups from first contact to close.', icon: Users },
-      { name: 'ERP', detail: 'Manage staff, stock and day-to-day operations in one system.', icon: Layers },
-      { name: 'Dashboards', detail: 'Clear, live views of the numbers that matter to you.', icon: LayoutDashboard },
-      { name: 'Custom Software', detail: 'Bespoke software built around your exact requirements.', icon: Code2 },
-    ],
-  },
-  {
-    id: 'digital-growth',
-    title: 'Digital Growth',
-    tagline: 'Data-driven campaigns that grow your reach, traffic and sales online.',
-    icon: Megaphone,
-    tile: 'from-amber-500 to-orange-600',
-    items: [
-      { name: 'SEO', detail: 'Rank higher on Google with on-page, technical and off-page SEO.', icon: Search },
-      { name: 'Social Media', detail: 'Engaging content and campaigns across Instagram, Facebook and more.', icon: Share2 },
-      { name: 'Digital Marketing', detail: 'Campaigns, ads and content managed end to end.', icon: Megaphone },
-      { name: 'WhatsApp Automation', detail: 'Reach customers directly with broadcasts and automation.', icon: MessageCircle },
-    ],
-  },
-  {
-    id: 'saas-product-development',
-    title: 'SaaS & Product Development',
-    tagline: 'Take a product from idea to production — with the APIs and cloud to run it.',
-    icon: Rocket,
-    tile: 'from-primary to-blue-600',
-    items: [
-      { name: 'SaaS', detail: 'Launch your subscription software from idea to production.', icon: Boxes },
-      { name: 'APIs', detail: 'Connect your tools with secure, reliable APIs.', icon: Plug },
-      { name: 'Cloud', detail: 'Hosting, DevOps and reliable deployment.', icon: Cloud },
-      { name: 'Product Development', detail: 'Shape, build and ship a product around your idea.', icon: Package },
-    ],
-  },
-];
+import { TECH_CATEGORIES as CATEGORIES } from '@/components/technology/TechData';
 
 const FOCUS_ON_DARK =
   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-blue-950';
@@ -102,7 +12,7 @@ const FOCUS_ON_DARK =
 export function TechnologySection() {
   const tech = DIVISIONS.find((d) => d.slug === 'technology');
   const exploreLabel = tech?.cta ?? 'Explore Technology';
-  const exploreHref = tech?.href ?? '/services';
+  const exploreHref = tech?.href ?? '/technology';
 
   const [activeId, setActiveId] = useState<string>(CATEGORIES[0].id);
   const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
@@ -294,7 +204,7 @@ export function TechnologySection() {
                           </div>
                         </div>
                         <Link
-                          href={`/services#${cat.id}`}
+                          href={`/technology/services#${cat.id}`}
                           aria-label={`See all ${cat.title} services`}
                           className={`group/all shrink-0 self-start sm:self-auto inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-white/10 border border-white/25 text-white text-sm font-semibold hover:bg-white/20 transition-colors ${FOCUS_ON_DARK}`}
                         >

@@ -301,7 +301,8 @@ export function AllServices() {
 
   return (
     // overflow-x-clip (not -hidden) so the sticky quick-nav keeps working.
-    <section className="relative pt-28 md:pt-36 pb-20 md:pb-28 px-4 sm:px-6 lg:px-8 overflow-x-clip">
+    // Top padding leaves room for the fixed two-row site header (strip + navbar, ≈ 96–104px).
+    <section className="relative pt-36 md:pt-44 pb-20 md:pb-28 px-4 sm:px-6 lg:px-8 overflow-x-clip">
       {/* Ambient glows */}
       <div aria-hidden className="animate-aurora pointer-events-none absolute -top-20 -right-20 w-96 h-96 rounded-full bg-indigo-500/10 blur-3xl" />
       <div aria-hidden className="animate-aurora pointer-events-none absolute top-1/3 -left-20 w-96 h-96 rounded-full bg-primary/10 blur-3xl" />
@@ -320,9 +321,9 @@ export function AllServices() {
             className="animate-hero-rise font-display text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-foreground leading-[1.08]"
             style={{ animationDelay: '80ms' }}
           >
-            Build. Automate.{' '}
+            All GlofiHub Technology{' '}
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-green-600 via-emerald-500 to-teal-500 animate-gradient-text">
-              Scale.
+              services
             </span>
           </h1>
           <p
@@ -356,7 +357,8 @@ export function AllServices() {
 
         {/* Quick-nav + categories (sticky nav lives only as long as the categories do) */}
         <div>
-          <div className="sticky top-[4.5rem] z-30 mb-10 md:mb-14">
+          {/* top offset = height of the fixed site header (96px on mobile, 104px from sm) + a 12px gap */}
+          <div className="sticky top-[6.75rem] sm:top-[7.25rem] z-30 mb-10 md:mb-14">
             <nav
               aria-label="Technology categories"
               className="rounded-2xl border border-foreground/10 bg-background/80 backdrop-blur-xl shadow-lg shadow-black/5 dark:shadow-black/30"
@@ -409,7 +411,8 @@ export function AllServices() {
                     More from GlofiHub
                   </p>
                 )}
-                <section id={cat.id} aria-labelledby={`${cat.id}-title`} className="scroll-mt-28">
+                {/* scroll-mt clears the fixed header + the sticky quick-nav (html adds 30px scroll-padding-top) */}
+                <section id={cat.id} aria-labelledby={`${cat.id}-title`} className="scroll-mt-36">
                   <div
                     data-reveal
                     className="relative rounded-3xl border border-foreground/10 bg-muted/30 dark:bg-card/40 p-5 sm:p-8 md:p-10"
