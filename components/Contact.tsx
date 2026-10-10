@@ -26,10 +26,12 @@ const WHATSAPP_BASE = `https://wa.me/${SITE.whatsapp}`;
 /** Requirement options, in display order. The label is what gets sent to the CRM; the slug is used for prefill links/events. */
 const REQUIREMENTS = [
   { slug: 'education', label: 'Education' },
+  { slug: 'counselling', label: 'Counselling' },
   { slug: 'academy', label: 'Academy / Courses' },
   { slug: 'jobs', label: 'Jobs & Careers' },
   { slug: 'consulting', label: 'Consulting' },
   { slug: 'technology', label: 'Technology' },
+  { slug: 'import-export', label: 'Import-Export' },
   { slug: 'global-opportunities', label: 'Global Opportunities' },
   { slug: 'partners', label: 'Partner Network' },
   { slug: 'institutional', label: 'Institutional Partnership' },
@@ -207,7 +209,7 @@ function ContactRow({
   );
 }
 
-export function Contact() {
+export function Contact({ defaultRequirement }: { defaultRequirement?: string } = {}) {
   const uid = useId();
   const id = (field: string) => `${uid}-${field}`;
 
@@ -275,7 +277,8 @@ export function Contact() {
   // Prefill: once from the URL on mount, and whenever another section dispatches `prefillContact`.
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    applyPrefill({ requirement: params.get('requirement'), message: params.get('message') }, false);
+    // A ?requirement= in the URL wins; otherwise fall back to the page's default (e.g. 'education').
+    applyPrefill({ requirement: params.get('requirement') || defaultRequirement, message: params.get('message') }, false);
 
     const onPrefill = (e: Event) => {
       const detail = (e as CustomEvent<{ requirement?: unknown; message?: unknown } | null>).detail;
@@ -283,7 +286,7 @@ export function Contact() {
     };
     window.addEventListener('prefillContact', onPrefill);
     return () => window.removeEventListener('prefillContact', onPrefill);
-  }, [applyPrefill]);
+  }, [applyPrefill, defaultRequirement]);
 
   // Move focus after a prefill event, once the new values are committed. preventScroll so we
   // don't fight the dispatcher's smooth scroll to #contact.
@@ -377,7 +380,7 @@ export function Contact() {
   const describedBy = (key: FieldKey) => (errors[key] ? id(`${key}-error`) : undefined);
 
   return (
-    <section id="contact" aria-labelledby={id('heading')} className="w-full">
+    <section id="contact" aria-labelledby={id('heading')} className="w-full scroll-mt-20">
       {/* Autofill keeps the dark field look; native controls (select list) render dark. */}
       <style>{`
         .contact-field:-webkit-autofill,

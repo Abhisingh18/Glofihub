@@ -179,7 +179,7 @@ const EDU_CATEGORIES: string[] =
 const ON_NAVY_FOCUS =
   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#0A2F6B]';
 
-export function Services() {
+export function Services({ eyebrow = 'GlofiHub Education' }: { eyebrow?: string } = {}) {
   const [activeTabs, setActiveTabs] = useState<Record<string, string>>({
     'service-education': 'india',
     'service-skills': 'technical',
@@ -256,7 +256,7 @@ export function Services() {
       <div data-reveal className="relative z-10 pt-16 pb-10 md:pt-24 md:pb-14 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
         <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/8 border border-primary/15 mb-5">
           <Sparkles size={14} className="text-primary" aria-hidden="true" />
-          <span className="text-xs font-semibold tracking-wide text-primary">GlofiHub Education</span>
+          <span className="text-xs font-semibold tracking-wide text-primary">{eyebrow}</span>
         </div>
         <h2
           id="services-heading"
