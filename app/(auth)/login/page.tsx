@@ -6,7 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Mail, Lock, Eye, EyeOff, LogIn, GraduationCap, Headset, ShieldCheck } from 'lucide-react';
-import { signIn } from '@/lib/actions/auth';
+import { signIn, adminSignIn } from '@/lib/actions/auth';
 import { loginSchema, type LoginInput } from '@/lib/validations';
 import { ROLE_HOME } from '@/lib/roles';
 import { Button, FieldError, Input, Label } from '@/components/crm/ui';
@@ -16,7 +16,7 @@ import type { UserRole } from '@/lib/database.types';
 type Portal = 'student' | 'staff' | 'admin';
 
 const PORTALS: { key: Portal; label: string; role: UserRole; icon: typeof Mail; blurb: string }[] = [
-  { key: 'student', label: 'Student', role: 'student', icon: GraduationCap, blurb: 'Access counselling, chat & payments' },
+  { key: 'student', label: 'Student / Staff', role: 'student', icon: GraduationCap, blurb: 'Sign in to your counselling account' },
   { key: 'staff', label: 'Staff', role: 'counsellor', icon: Headset, blurb: 'Manage your assigned students' },
   { key: 'admin', label: 'Admin', role: 'super_admin', icon: ShieldCheck, blurb: 'Full control of the platform' },
 ];
@@ -46,7 +46,8 @@ function LoginForm() {
 
   const onSubmit = async (values: LoginInput) => {
     setNotice('');
-    const res = await signIn(values);
+    // The Admin tab uses the administrator-only sign-in; everyone else uses the student / staff one.
+    const res = active.key === 'admin' ? await adminSignIn(values) : await signIn(values);
     if (!res.ok) {
       setNotice(res.error || 'Invalid email or password.');
       return;
@@ -116,7 +117,7 @@ function LoginForm() {
         </div>
 
         <Button type="submit" loading={isSubmitting} className="w-full">
-          <LogIn size={16} /> Sign In as {active.label}
+          <LogIn size={16} /> {active.key === 'student' ? 'Sign In' : `Sign In as ${active.label}`}
         </Button>
 
         {notice && (
