@@ -2,8 +2,17 @@
 
 import Link from 'next/link';
 import type { MouseEvent } from 'react';
-import { ArrowRight, Check, MessageCircle, Sparkles } from 'lucide-react';
-import { DIVISIONS, type Division } from '@/lib/divisions';
+import {
+  AppWindow,
+  ArrowRight,
+  ArrowUpRight,
+  Check,
+  LayoutGrid,
+  MessageCircle,
+  Sparkles,
+  type LucideIcon,
+} from 'lucide-react';
+import { DIVISIONS, PRIMARY_DIVISIONS, type Division } from '@/lib/divisions';
 import { SITE } from '@/lib/site';
 
 const spotlight = (e: MouseEvent<HTMLElement>) => {
@@ -21,6 +30,17 @@ const FOCUS_RING_ON_DARK =
 const expertLink = `https://wa.me/${SITE.whatsapp}?text=${encodeURIComponent(
   "Hi GlofiHub! 👋 I'd like to talk to an expert about the right place to start."
 )}`;
+
+// Two tiers, both driven by lib/divisions.ts:
+//  1. "GlofiHub websites" — the five `primary` businesses that run a website of their own
+//     (the `featured` one leads as a full-width banner, the other four sit 3 columns each on xl,
+//     so the block fills a 12-column row exactly: 12 + 3 + 3 + 3 + 3).
+//  2. "More from GlofiHub" — every other business, four tiles of 3 columns each on xl.
+const FEATURED_SITE = PRIMARY_DIVISIONS.find((d) => d.featured);
+const WEBSITE_TILES: Division[] = FEATURED_SITE
+  ? [FEATURED_SITE, ...PRIMARY_DIVISIONS.filter((d) => d !== FEATURED_SITE)]
+  : PRIMARY_DIVISIONS;
+const MORE_TILES: Division[] = DIVISIONS.filter((d) => !d.primary);
 
 function CheckDot() {
   return (
@@ -46,7 +66,52 @@ function StatusBadge({ soon }: { soon: boolean }) {
   );
 }
 
-/** One ecosystem tile. `featured` = the large lead tile (with its stats strip). */
+/** Label + blurb that introduces one tier of tiles. */
+function GroupHeader({
+  id,
+  icon: Icon,
+  iconStyle,
+  title,
+  blurb,
+  count,
+}: {
+  id: string;
+  icon: LucideIcon;
+  iconStyle: string;
+  title: string;
+  blurb: string;
+  count: string;
+}) {
+  return (
+    <div data-reveal className="mb-6 md:mb-8">
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex min-w-0 items-start gap-3.5 sm:gap-4">
+          <span
+            aria-hidden
+            className={`mt-0.5 flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl text-white shadow-lg ${iconStyle}`}
+          >
+            <Icon size={20} />
+          </span>
+          <div className="min-w-0">
+            <h3 id={id} className="font-display text-xl font-bold tracking-tight text-foreground sm:text-2xl">
+              {title}
+            </h3>
+            <p className="mt-1 max-w-2xl text-sm leading-relaxed text-foreground/65">{blurb}</p>
+          </div>
+        </div>
+        <span className="hidden shrink-0 items-center rounded-full border border-foreground/10 bg-foreground/[0.04] px-3 py-1 text-xs font-semibold text-foreground/70 sm:inline-flex">
+          {count}
+        </span>
+      </div>
+      <div aria-hidden className="mt-5 h-px bg-gradient-to-r from-primary/35 via-foreground/10 to-transparent" />
+    </div>
+  );
+}
+
+/**
+ * One ecosystem tile. `featured` = the lead tile: a full-width banner (copy left, stats panel right
+ * from lg up). Primary businesses are separate websites, so their tiles say so (out-arrow + hint).
+ */
 function DivisionTile({
   d,
   index,
@@ -60,9 +125,46 @@ function DivisionTile({
 }) {
   const Icon = d.icon;
   const soon = d.status === 'soon';
+  // Two-column banner (copy | stats panel) only when the featured tile actually has stats to show.
+  const banner = featured && Boolean(d.stats && d.stats.length > 0);
+
+  const isSite = Boolean(d.primary);
+  const CtaArrow = isSite ? ArrowUpRight : ArrowRight;
+  const arrowMove = isSite
+    ? 'group-hover:translate-x-0.5 group-hover:-translate-y-0.5 motion-reduce:group-hover:translate-x-0 motion-reduce:group-hover:translate-y-0'
+    : 'group-hover:translate-x-1 motion-reduce:group-hover:translate-x-0';
+
+  const siteHint = isSite ? (
+    <span className="inline-flex items-center gap-1.5 text-[11px] font-medium leading-snug text-foreground/65">
+      <AppWindow size={12} className="shrink-0" aria-hidden />
+      Opens the {d.short} website
+    </span>
+  ) : null;
+
+  const cta = featured ? (
+    <div
+      className={`flex flex-col items-start gap-2.5 md:shrink-0 lg:flex-row lg:flex-wrap lg:items-center lg:gap-x-4 ${
+        banner ? 'lg:col-start-1 lg:row-start-2 lg:pt-7' : ''
+      }`}
+    >
+      <span className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-primary to-accent px-6 py-3 text-sm font-semibold tracking-wide text-white shadow-lg shadow-primary/25 transition-all group-hover:shadow-xl">
+        {d.cta}
+        <CtaArrow size={16} aria-hidden className={`transition-transform ${arrowMove}`} />
+      </span>
+      {siteHint}
+    </div>
+  ) : (
+    <div className="flex flex-col items-start gap-1.5">
+      <span className="inline-flex items-center gap-1 text-[13px] font-semibold text-primary dark:text-accent">
+        {d.cta}
+        <CtaArrow size={14} aria-hidden className={`transition-transform ${arrowMove}`} />
+      </span>
+      {siteHint}
+    </div>
+  );
 
   return (
-    <div data-reveal data-reveal-d={`${(index % 5) + 1}`} className={`flex ${className}`}>
+    <li data-reveal data-reveal-d={`${(index % 5) + 1}`} className={`flex ${className}`}>
       <Link
         href={d.href}
         onMouseMove={spotlight}
@@ -107,118 +209,115 @@ function DivisionTile({
             {String(index + 1).padStart(2, '0')}
           </span>
 
-          {/* Icon + status */}
-          <div className={`relative flex items-start justify-between gap-3 ${featured ? 'mb-6' : 'mb-5'}`}>
-            <span
-              className={`flex items-center justify-center rounded-2xl shadow-lg transition-transform duration-500 group-hover:scale-110 group-hover:-rotate-6 motion-reduce:group-hover:scale-100 motion-reduce:group-hover:rotate-0 ${d.iconBg} ${
-                featured ? 'h-16 w-16' : 'h-14 w-14'
-              }`}
-            >
-              <Icon size={featured ? 30 : 26} className="text-white" aria-hidden />
-            </span>
-            <StatusBadge soon={soon} />
-          </div>
-
-          {/* Title + copy */}
-          <h3
-            className={`relative font-display font-bold tracking-tight text-foreground ${
-              featured ? 'text-2xl md:text-3xl' : 'text-xl'
-            }`}
-          >
-            {d.name}
-          </h3>
-          <p
-            className={`relative mt-1.5 font-semibold tracking-wide text-primary dark:text-accent ${
-              featured ? 'text-sm' : 'text-xs'
-            }`}
-          >
-            {d.tagline}
-          </p>
-          <p
-            className={`relative mt-3 leading-relaxed text-foreground/65 ${
-              featured ? 'text-sm md:text-base' : 'text-[13px]'
-            }`}
-          >
-            {d.description}
-          </p>
-
-          {/* Highlights: chips on the featured tile, a check-list on the compact tiles */}
-          {featured ? (
-            <ul className="relative mt-5 flex flex-wrap gap-2">
-              {d.highlights.map((h) => (
-                <li
-                  key={h}
-                  className="inline-flex items-center gap-1.5 rounded-full border border-foreground/10 bg-foreground/[0.04] px-3 py-1 text-xs font-medium text-foreground/75"
-                >
-                  <Check size={11} strokeWidth={3} className="shrink-0 text-emerald-600 dark:text-emerald-400" aria-hidden />
-                  {h}
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <ul className="relative mt-5 space-y-2.5">
-              {d.highlights.map((h) => (
-                <li key={h} className="flex items-start gap-2.5 text-[13px] font-medium text-foreground/75">
-                  <CheckDot />
-                  {h}
-                </li>
-              ))}
-            </ul>
-          )}
-
-          {/* Stats (featured only) + call to action, pinned to the bottom for equal-height tiles */}
+          {/* Content: one column; the featured tile turns into a two-column banner from lg up
+              (copy on the left, stats panel on the right). */}
           <div
-            className={`relative mt-auto flex flex-col gap-5 pt-6 ${
-              featured ? 'md:flex-row md:items-center md:justify-between xl:flex-col xl:items-stretch xl:justify-start' : 'items-stretch'
+            className={`relative flex flex-1 flex-col ${
+              banner ? 'lg:grid lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)] lg:gap-x-10 xl:gap-x-14' : ''
             }`}
           >
-            {featured && d.stats && d.stats.length > 0 && (
-              <dl className="grid grid-cols-3 gap-2 rounded-2xl border border-foreground/10 bg-foreground/[0.03] p-3 sm:p-4 md:max-w-md md:flex-1 xl:max-w-none xl:flex-none">
-                {d.stats.map((s) => (
-                  <div key={s.label} className="flex flex-col-reverse gap-1.5 text-center">
-                    <dt className="text-[10px] font-medium leading-tight text-foreground/60 sm:text-xs">{s.label}</dt>
-                    <dd className="font-display text-xl font-extrabold leading-none text-transparent bg-clip-text bg-gradient-to-r from-green-600 to-emerald-500 dark:from-green-400 dark:to-emerald-300 sm:text-2xl">
-                      {s.value}
-                    </dd>
-                  </div>
-                ))}
-              </dl>
-            )}
+            <div className={`flex flex-col ${banner ? 'lg:col-start-1 lg:row-start-1' : ''}`}>
+              {/* Icon + status */}
+              <div className={`flex items-start justify-between gap-3 ${featured ? 'mb-6' : 'mb-5'}`}>
+                <span
+                  className={`flex items-center justify-center rounded-2xl shadow-lg transition-transform duration-500 group-hover:scale-110 group-hover:-rotate-6 motion-reduce:group-hover:scale-100 motion-reduce:group-hover:rotate-0 ${d.iconBg} ${
+                    featured ? 'h-16 w-16' : 'h-14 w-14'
+                  }`}
+                >
+                  <Icon size={featured ? 30 : 26} className="text-white" aria-hidden />
+                </span>
+                <StatusBadge soon={soon} />
+              </div>
 
-            {featured ? (
-              <span className="inline-flex items-center gap-2 self-start rounded-full bg-gradient-to-r from-primary to-accent px-6 py-3 text-sm font-semibold tracking-wide text-white shadow-lg shadow-primary/25 transition-all group-hover:shadow-xl md:shrink-0 md:self-auto xl:self-start">
-                {d.cta}
-                <ArrowRight
-                  size={16}
-                  aria-hidden
-                  className="transition-transform group-hover:translate-x-1 motion-reduce:group-hover:translate-x-0"
-                />
-              </span>
-            ) : (
-              <span className="inline-flex items-center gap-1 self-start text-[13px] font-semibold text-primary dark:text-accent">
-                {d.cta}
-                <ArrowRight
-                  size={14}
-                  aria-hidden
-                  className="transition-transform group-hover:translate-x-1 motion-reduce:group-hover:translate-x-0"
-                />
-              </span>
-            )}
+              {/* Title + copy */}
+              <h4
+                className={`font-display font-bold tracking-tight text-balance text-foreground ${
+                  featured ? 'text-2xl md:text-3xl xl:text-4xl' : 'text-xl'
+                }`}
+              >
+                {d.name}
+              </h4>
+              <p
+                className={`mt-1.5 font-semibold tracking-wide text-primary dark:text-accent ${
+                  featured ? 'text-sm' : 'text-xs'
+                }`}
+              >
+                {d.tagline}
+              </p>
+              <p
+                className={`mt-3 leading-relaxed text-foreground/65 ${
+                  featured ? 'max-w-2xl text-sm md:text-base' : 'text-[13px]'
+                }`}
+              >
+                {d.description}
+              </p>
+
+              {/* Highlights: chips on the featured tile, a check-list on the compact tiles */}
+              {featured ? (
+                <ul className="mt-5 flex flex-wrap gap-2">
+                  {d.highlights.map((h) => (
+                    <li
+                      key={h}
+                      className="inline-flex items-center gap-1.5 rounded-full border border-foreground/10 bg-foreground/[0.04] px-3 py-1 text-xs font-medium text-foreground/75"
+                    >
+                      <Check size={11} strokeWidth={3} className="shrink-0 text-emerald-600 dark:text-emerald-400" aria-hidden />
+                      {h}
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <ul className="mt-5 space-y-2.5">
+                  {d.highlights.map((h) => (
+                    <li key={h} className="flex items-start gap-2.5 text-[13px] font-medium text-foreground/75">
+                      <CheckDot />
+                      {h}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+
+            {/* Stats (featured only) + call to action. Pinned to the bottom for equal-height tiles; on the
+                featured banner at lg+ this wrapper dissolves (`contents`) so the stats panel takes the
+                right column and the CTA sits under the copy. */}
+            <div
+              className={
+                featured
+                  ? `relative mt-auto flex flex-col gap-5 pt-6 md:flex-row md:items-center md:justify-between ${
+                      banner ? 'lg:contents' : ''
+                    }`
+                  : 'relative mt-auto pt-6'
+              }
+            >
+              {banner && d.stats && (
+                <dl className="grid grid-cols-3 gap-2 rounded-2xl border border-foreground/10 bg-foreground/[0.03] p-3 sm:p-4 md:max-w-md md:flex-1 lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:max-w-none lg:grid-cols-1 lg:grid-rows-3 lg:gap-0 lg:divide-y lg:divide-foreground/10 lg:self-stretch lg:p-0">
+                  {d.stats.map((s) => (
+                    <div
+                      key={s.label}
+                      className="flex flex-col-reverse gap-1.5 text-center lg:grid lg:grid-cols-[8rem_minmax(0,1fr)] lg:items-center lg:gap-x-4 lg:px-7 lg:text-left"
+                    >
+                      <dt className="text-[10px] font-medium leading-tight text-foreground/60 sm:text-xs lg:order-2 lg:text-sm lg:text-foreground/70">
+                        {s.label}
+                      </dt>
+                      <dd className="font-display text-xl font-extrabold leading-none text-transparent bg-clip-text bg-gradient-to-r from-green-600 to-emerald-500 dark:from-green-400 dark:to-emerald-300 sm:text-2xl lg:order-1 lg:text-4xl">
+                        {s.value}
+                      </dd>
+                    </div>
+                  ))}
+                </dl>
+              )}
+
+              {cta}
+            </div>
           </div>
         </div>
       </Link>
-    </div>
+    </li>
   );
 }
 
-/** Home-page "Explore the GlofiHub Ecosystem": one tile per vertical. Driven by lib/divisions.ts. */
+/** Home-page "Explore the GlofiHub Ecosystem": the five GlofiHub websites, then the other businesses. */
 export function Divisions() {
-  // The `featured` division leads as a wide tile (6 of 12 columns on xl, full width on sm);
-  // the rest are compact 3-column tiles, so 7 verticals fill two clean rows on xl (3 + 4).
-  const featured = DIVISIONS.find((d) => d.featured);
-  const others = DIVISIONS.filter((d) => d !== featured);
-  const ordered = featured ? [featured, ...others] : others;
-
   return (
     <section id="businesses" className="relative bg-background overflow-hidden py-20 md:py-28 px-4 sm:px-6 lg:px-8 scroll-mt-20">
       {/* Animated mesh + dotted-grid background */}
@@ -254,26 +353,61 @@ export function Divisions() {
           </p>
         </div>
 
-        {/* Ecosystem grid: xl = 12 columns (6 + 3 + 3, then 3 + 3 + 3 + 3), sm = 2 columns, mobile = 1 */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-12 gap-5 lg:gap-6">
-          {ordered.map((d, i) => {
-            const isFeatured = d === featured;
-            return (
-              <DivisionTile
-                key={d.slug}
-                d={d}
-                index={i}
-                featured={isFeatured}
-                className={isFeatured ? 'sm:col-span-2 xl:col-span-6' : 'xl:col-span-3'}
-              />
-            );
-          })}
+        {/* Tier 1 — the GlofiHub websites. Grid: xl = 12 columns (banner 12, then 3 + 3 + 3 + 3), sm = 2 columns, mobile = 1 */}
+        <div role="group" aria-labelledby="ecosystem-websites">
+          <GroupHeader
+            id="ecosystem-websites"
+            icon={AppWindow}
+            iconStyle="bg-gradient-to-br from-primary to-accent shadow-primary/25"
+            title="GlofiHub websites"
+            blurb="Each of these businesses has a website of its own. Open one to explore its pages and get in touch."
+            count={`${WEBSITE_TILES.length} websites`}
+          />
+          <ul role="list" className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-12 gap-5 lg:gap-6">
+            {WEBSITE_TILES.map((d, i) => {
+              const isFeatured = d === FEATURED_SITE;
+              return (
+                <DivisionTile
+                  key={d.slug}
+                  d={d}
+                  index={i}
+                  featured={isFeatured}
+                  className={isFeatured ? 'sm:col-span-2 xl:col-span-12' : 'xl:col-span-3'}
+                />
+              );
+            })}
+          </ul>
         </div>
+
+        {/* Tier 2 — everything else. Grid: xl = 3 + 3 + 3 + 3, sm = 2 columns, mobile = 1 */}
+        {MORE_TILES.length > 0 && (
+          <div role="group" aria-labelledby="ecosystem-more" className="mt-14 md:mt-16">
+            <GroupHeader
+              id="ecosystem-more"
+              icon={LayoutGrid}
+              iconStyle="bg-gradient-to-br from-emerald-500 to-teal-600 shadow-emerald-500/25"
+              title="More from GlofiHub"
+              blurb="Careers, consulting, global opportunities and our partner network — more ways GlofiHub can help."
+              count={`${MORE_TILES.length} more`}
+            />
+            <ul role="list" className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-12 gap-5 lg:gap-6">
+              {MORE_TILES.map((d, i) => (
+                <DivisionTile
+                  key={d.slug}
+                  d={d}
+                  index={WEBSITE_TILES.length + i}
+                  featured={false}
+                  className="xl:col-span-3"
+                />
+              ))}
+            </ul>
+          </div>
+        )}
 
         {/* Closing band */}
         <div
           data-reveal
-          className="relative mt-10 md:mt-12 overflow-hidden rounded-3xl bg-gradient-to-br from-[#0A2F6B] to-blue-700 p-6 sm:p-8 md:p-10 text-white shadow-xl shadow-primary/20 ring-1 ring-white/10"
+          className="relative mt-12 md:mt-14 overflow-hidden rounded-3xl bg-gradient-to-br from-[#0A2F6B] to-blue-700 p-6 sm:p-8 md:p-10 text-white shadow-xl shadow-primary/20 ring-1 ring-white/10"
         >
           <div aria-hidden className="pointer-events-none absolute -top-16 -right-10 h-56 w-56 rounded-full bg-white/10 blur-3xl" />
           <div aria-hidden className="pointer-events-none absolute -bottom-20 left-1/3 h-48 w-48 rounded-full bg-emerald-400/20 blur-3xl animate-aurora" />
