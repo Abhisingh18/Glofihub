@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { ArrowLeft, ArrowRight, Bell, Check, Mail, MessageCircle, Sparkles } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Bell, MessageCircle, Sparkles } from 'lucide-react';
 import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
 import { FloatingContact } from '@/components/FloatingContact';
@@ -54,6 +54,10 @@ export default async function DivisionPage({ params }: Props) {
   const notifyLink = `https://wa.me/${SITE.whatsapp}?text=${encodeURIComponent(
     `Hi GlofiHub! 👋 Please let me know when ${d.name} launches — I'd like to be the first to know.`
   )}`;
+  // Contact-form prefill (the home page Contact component reads ?requirement= & ?message= and #contact).
+  const keepPostedLink = `/?requirement=${d.slug}&message=${encodeURIComponent(`Please keep me posted about ${d.name}`)}#contact`;
+  // Blueprint category list — shown as planned scope. Falls back to the card highlights.
+  const planned = d.categories && d.categories.length > 0 ? d.categories : d.highlights;
 
   return (
     <main className="min-h-screen bg-background text-foreground overflow-x-hidden">
@@ -114,44 +118,44 @@ export default async function DivisionPage({ params }: Props) {
         </div>
       </section>
 
-      {/* ───────────── What to expect ───────────── */}
-      <section aria-labelledby="expect-heading" className="relative bg-muted/30 px-4 sm:px-6 lg:px-8 py-16 md:py-24">
+      {/* ───────────── What's planned ───────────── */}
+      <section aria-labelledby="planned-heading" className="relative bg-muted/30 px-4 sm:px-6 lg:px-8 py-16 md:py-24">
         <div className="max-w-5xl mx-auto">
           <div className="text-center max-w-xl mx-auto mb-10 md:mb-12" data-reveal>
             <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/8 border border-primary/15 mb-5">
               <Sparkles size={14} className="text-primary dark:text-accent" aria-hidden />
-              <span className="text-xs font-semibold text-primary dark:text-accent tracking-wide">What to expect</span>
+              <span className="text-xs font-semibold text-primary dark:text-accent tracking-wide">Planned scope</span>
             </div>
-            <h2 id="expect-heading" className="font-display text-2xl md:text-4xl font-extrabold tracking-tight leading-[1.1]">
-              Here&apos;s what we&apos;re{' '}
+            <h2 id="planned-heading" className="font-display text-2xl md:text-4xl font-extrabold tracking-tight leading-[1.1]">
+              What&apos;s{' '}
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-green-600 via-emerald-500 to-teal-500 animate-gradient-text">
-                building
+                planned
               </span>
             </h2>
             <p className="mt-4 text-sm md:text-base text-foreground/60 leading-relaxed">
-              A first look at what {d.name} is being set up to offer. More details will follow as we get closer to launch.
+              The areas {d.name} is being set up to cover. Details will follow as we get closer to launch.
             </p>
           </div>
 
-          <ul className="grid gap-4 md:grid-cols-3">
-            {d.highlights.map((h, i) => (
-              <li key={h} data-reveal data-reveal-d={`${(i % 5) + 1}`} className="flex">
-                <div className="group relative w-full overflow-hidden rounded-3xl border border-foreground/10 bg-card p-6 shadow-lg shadow-black/5 transition-all duration-500 hover:-translate-y-1.5 hover:shadow-xl motion-reduce:transition-none motion-reduce:hover:translate-y-0">
-                  <span aria-hidden className={`absolute inset-x-0 top-0 h-1 opacity-80 ${d.iconBg}`} />
-                  <span
-                    aria-hidden
-                    className="pointer-events-none absolute -bottom-3 right-4 select-none font-display text-7xl font-extrabold leading-none text-foreground/[0.04]"
-                  >
-                    {String(i + 1).padStart(2, '0')}
-                  </span>
-                  <span className={`relative mb-5 flex h-11 w-11 items-center justify-center rounded-2xl shadow-md ${d.iconBg}`}>
-                    <Check size={20} strokeWidth={3} className="text-white" aria-hidden />
-                  </span>
-                  <p className="relative text-base font-semibold leading-snug text-foreground">{h}</p>
+          <ul className="grid grid-cols-1 gap-3 min-[480px]:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 md:gap-4">
+            {planned.map((label, i) => (
+              <li key={label} data-reveal data-reveal-d={`${(i % 5) + 1}`} className="flex">
+                <div className="group relative flex w-full items-center gap-3.5 overflow-hidden rounded-2xl border border-foreground/10 bg-card px-4 py-4 shadow-md shadow-black/5 transition-all duration-300 hover:-translate-y-1 hover:border-primary/30 hover:shadow-lg motion-reduce:transition-none motion-reduce:hover:translate-y-0">
+                  <span aria-hidden className={`h-9 w-1 shrink-0 rounded-full opacity-80 transition-opacity group-hover:opacity-100 ${d.iconBg}`} />
+                  <div className="min-w-0">
+                    <span aria-hidden className="block font-display text-[10px] font-bold tracking-widest text-foreground/35">
+                      {String(i + 1).padStart(2, '0')}
+                    </span>
+                    <p className="text-sm font-semibold leading-snug text-foreground">{label}</p>
+                  </div>
                 </div>
               </li>
             ))}
           </ul>
+
+          <p className="mt-8 text-center text-xs leading-relaxed text-foreground/50" data-reveal>
+            This is our planned scope and may change before launch — none of it is open for booking yet.
+          </p>
         </div>
       </section>
 
@@ -173,24 +177,25 @@ export default async function DivisionPage({ params }: Props) {
                 Be the first to know
               </h2>
               <p className="mt-3 text-sm md:text-base leading-relaxed text-white/75">
-                Drop us a message on WhatsApp and our team will keep you posted as {d.name} gets ready to launch.
+                Share your details and our team will keep you posted as {d.name} gets ready to launch.
               </p>
             </div>
 
             <div className="flex w-full shrink-0 flex-col gap-3 sm:w-auto">
+              <Link
+                href={keepPostedLink}
+                className={`inline-flex items-center justify-center gap-2 rounded-full bg-white px-7 py-3.5 text-sm font-semibold tracking-wide text-[#0A2F6B] shadow-lg transition-all hover:-translate-y-0.5 hover:shadow-xl motion-reduce:transition-none motion-reduce:hover:translate-y-0 ${FOCUS_RING_ON_DARK}`}
+              >
+                Keep me posted <ArrowRight size={16} aria-hidden />
+              </Link>
               <a
                 href={notifyLink}
                 target="_blank"
                 rel="noopener noreferrer"
-                className={`inline-flex items-center justify-center gap-2 rounded-full bg-white px-7 py-3.5 text-sm font-semibold tracking-wide text-[#0A2F6B] shadow-lg transition-all hover:-translate-y-0.5 hover:shadow-xl motion-reduce:transition-none motion-reduce:hover:translate-y-0 ${FOCUS_RING_ON_DARK}`}
-              >
-                <MessageCircle size={16} aria-hidden /> Notify me on WhatsApp
-              </a>
-              <a
-                href={`mailto:${SITE.email}`}
                 className={`inline-flex items-center justify-center gap-2 rounded-full border border-white/30 px-7 py-3.5 text-sm font-semibold tracking-wide text-white transition-colors hover:bg-white/10 ${FOCUS_RING_ON_DARK}`}
               >
-                <Mail size={16} aria-hidden /> Email us
+                <MessageCircle size={16} aria-hidden /> Notify me on WhatsApp
+                <span className="sr-only"> (opens in a new tab)</span>
               </a>
             </div>
           </div>
@@ -247,7 +252,7 @@ export default async function DivisionPage({ params }: Props) {
                       <p className="mt-1 text-xs font-semibold tracking-wide text-primary dark:text-accent">{o.tagline}</p>
                       <p className="mt-3 text-[13px] leading-relaxed text-foreground/65">{o.description}</p>
                       <span className="mt-auto inline-flex items-center gap-1 pt-5 text-[13px] font-semibold text-primary dark:text-accent">
-                        {oSoon ? 'Learn more' : 'Explore'}
+                        {o.cta}
                         <ArrowRight
                           size={14}
                           aria-hidden
