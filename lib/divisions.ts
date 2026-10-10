@@ -1,13 +1,25 @@
-import { BookOpen, Briefcase, Code2, Compass, GraduationCap, Globe, Handshake, Ship, type LucideIcon } from 'lucide-react';
+import {
+  BookOpen,
+  Briefcase,
+  Code2,
+  Compass,
+  GraduationCap,
+  Globe,
+  Handshake,
+  HeartHandshake,
+  Ship,
+  type LucideIcon,
+} from 'lucide-react';
 
 /**
- * The GlofiHub ecosystem's verticals — single source of truth for the home-page
- * "Explore the GlofiHub Ecosystem" blocks, navbar menu, footer, contact form,
- * chatbot and the /{slug} landing pages. Copy follows the Ecosystem Blueprint.
+ * The GlofiHub ecosystem's businesses — single source of truth for the parent site's
+ * "Explore the GlofiHub Ecosystem" blocks, navbar menu, footer, contact form and chatbot.
  *
- * To add a vertical: add an entry here. 'live' blocks link to `href`;
- * 'soon' blocks link to a generated /{slug} "launching soon" page
- * (see app/[division]/page.tsx).
+ * `primary` businesses each have a website of their own inside the group (see lib/sites.ts):
+ * Counselling, Education, Academy, Import-Export and Technology.
+ * The others are sections on the parent site (or "launching soon" pages, app/[division]/page.tsx).
+ *
+ * `status` describes the business, not the site: 'soon' = the offering itself is not launched yet.
  */
 export interface DivisionStat {
   value: string;
@@ -24,19 +36,21 @@ export interface Division {
   description: string;
   /** Three short bullets for cards. */
   highlights: string[];
-  /** Fuller category list from the blueprint (vertical pages / sections). */
+  /** Fuller category list (vertical pages / sections). */
   categories?: string[];
   /** Card call-to-action label, e.g. "Explore Education". */
   cta: string;
-  /** Where the home-page block leads. */
+  /** Where the block leads. */
   href: string;
   status: 'live' | 'soon';
+  /** One of the five businesses that has its own website — shown inline in the parent navbar. */
+  primary?: boolean;
   icon: LucideIcon;
   /** Tailwind classes for the icon tile / hover glow, and the spotlight colour. */
   iconBg: string;
   glow: string;
   spot: string;
-  /** Optional: render as the large "featured" tile on the home-page ecosystem grid. */
+  /** Optional: render as the large "featured" tile on the parent's ecosystem grid. */
   featured?: boolean;
   /** Optional: proof points shown on the featured tile (reuse existing site numbers only). */
   stats?: DivisionStat[];
@@ -52,8 +66,9 @@ export const DIVISIONS: Division[] = [
     highlights: ['Medical', 'Technology', 'Management & other programs'],
     categories: ['Medical', 'Technology', 'Management', 'Other Programs'],
     cta: 'Explore Education',
-    href: '/counselling',
+    href: '/education',
     status: 'live',
+    primary: true,
     icon: GraduationCap,
     iconBg: 'bg-gradient-to-br from-blue-500 to-blue-600',
     glow: 'group-hover:shadow-blue-500/25',
@@ -64,6 +79,30 @@ export const DIVISIONS: Division[] = [
       { value: '10+', label: 'Countries Reached' },
       { value: '95%', label: 'Visa Success Rate' },
     ],
+  },
+  {
+    slug: 'counselling',
+    name: 'GlofiHub Counselling',
+    short: 'Counselling',
+    tagline: 'Counselling, student portal & secure chat',
+    description:
+      'Expert counselling for study in India and abroad — with a student portal, secure in-app chat and on-ground support.',
+    highlights: ['Free counselling', 'Student login & secure chat', 'Admissions & visa support'],
+    categories: [
+      'University selection & application guidance',
+      'Scholarship and financial aid assistance',
+      'Visa documentation and interview prep',
+      'On-ground support in host countries',
+      'Pre-departure orientation and planning',
+    ],
+    cta: 'Explore Counselling',
+    href: '/counselling',
+    status: 'live',
+    primary: true,
+    icon: HeartHandshake,
+    iconBg: 'bg-gradient-to-br from-rose-500 to-pink-600',
+    glow: 'group-hover:shadow-rose-500/25',
+    spot: 'rgba(244,63,94,0.18)',
   },
   {
     slug: 'academy',
@@ -88,10 +127,51 @@ export const DIVISIONS: Division[] = [
     cta: 'Explore Academy',
     href: '/academy',
     status: 'soon',
+    primary: true,
     icon: BookOpen,
     iconBg: 'bg-gradient-to-br from-emerald-500 to-green-600',
     glow: 'group-hover:shadow-emerald-500/25',
     spot: 'rgba(16,185,129,0.18)',
+  },
+  {
+    slug: 'import-export',
+    name: 'GlofiHub Import-Export',
+    short: 'Import-Export',
+    tagline: 'Global trade support',
+    description: 'Connecting businesses with international markets through import and export services.',
+    highlights: ['Import', 'Export', 'Trade documentation & logistics'],
+    categories: ['Import', 'Export', 'Trade Documentation', 'Logistics Support'],
+    cta: 'Explore Import-Export',
+    href: '/import-export',
+    status: 'soon',
+    primary: true,
+    icon: Ship,
+    iconBg: 'bg-gradient-to-br from-orange-500 to-red-600',
+    glow: 'group-hover:shadow-orange-500/25',
+    spot: 'rgba(249,115,22,0.18)',
+  },
+  {
+    slug: 'technology',
+    name: 'GlofiHub Technology',
+    short: 'Technology',
+    tagline: 'Build. Automate. Scale.',
+    description: 'Web, apps, AI, CRM, automation and SaaS.',
+    highlights: ['Web & app development', 'AI & automation', 'CRM, SaaS & digital growth'],
+    categories: [
+      'Web & App Development',
+      'AI & Automation',
+      'Business Systems',
+      'Digital Growth',
+      'SaaS & Product Development',
+    ],
+    cta: 'Explore Technology',
+    href: '/technology',
+    status: 'live',
+    primary: true,
+    icon: Code2,
+    iconBg: 'bg-gradient-to-br from-indigo-500 to-violet-600',
+    glow: 'group-hover:shadow-indigo-500/25',
+    spot: 'rgba(99,102,241,0.18)',
   },
   {
     slug: 'jobs',
@@ -105,7 +185,7 @@ export const DIVISIONS: Division[] = [
     href: '/#careers',
     status: 'live',
     icon: Briefcase,
-    iconBg: 'bg-gradient-to-br from-amber-500 to-orange-600',
+    iconBg: 'bg-gradient-to-br from-amber-500 to-yellow-600',
     glow: 'group-hover:shadow-amber-500/25',
     spot: 'rgba(245,158,11,0.18)',
   },
@@ -133,44 +213,6 @@ export const DIVISIONS: Division[] = [
     spot: 'rgba(6,182,212,0.18)',
   },
   {
-    slug: 'technology',
-    name: 'GlofiHub Technology',
-    short: 'Technology',
-    tagline: 'Build. Automate. Scale.',
-    description: 'Web, apps, AI, CRM, automation and SaaS.',
-    highlights: ['Web & app development', 'AI & automation', 'CRM, SaaS & digital growth'],
-    categories: [
-      'Web & App Development',
-      'AI & Automation',
-      'Business Systems',
-      'Digital Growth',
-      'SaaS & Product Development',
-    ],
-    cta: 'Explore Technology',
-    href: '/services',
-    status: 'live',
-    icon: Code2,
-    iconBg: 'bg-gradient-to-br from-indigo-500 to-violet-600',
-    glow: 'group-hover:shadow-indigo-500/25',
-    spot: 'rgba(99,102,241,0.18)',
-  },
-  {
-    slug: 'import-export',
-    name: 'GlofiHub Import-Export',
-    short: 'Import-Export',
-    tagline: 'Global trade support',
-    description: 'Connecting businesses with international markets through import and export services.',
-    highlights: ['Import', 'Export', 'Trade documentation & logistics'],
-    categories: ['Import', 'Export', 'Trade Documentation', 'Logistics Support'],
-    cta: 'Explore Import-Export',
-    href: '/import-export',
-    status: 'soon',
-    icon: Ship,
-    iconBg: 'bg-gradient-to-br from-sky-500 to-blue-700',
-    glow: 'group-hover:shadow-sky-500/25',
-    spot: 'rgba(14,165,233,0.18)',
-  },
-  {
     slug: 'global-opportunities',
     name: 'GlofiHub Global Opportunities',
     short: 'Global Opportunities',
@@ -189,9 +231,9 @@ export const DIVISIONS: Division[] = [
     href: '/global-opportunities',
     status: 'soon',
     icon: Globe,
-    iconBg: 'bg-gradient-to-br from-rose-500 to-pink-600',
-    glow: 'group-hover:shadow-rose-500/25',
-    spot: 'rgba(244,63,94,0.18)',
+    iconBg: 'bg-gradient-to-br from-fuchsia-500 to-pink-600',
+    glow: 'group-hover:shadow-fuchsia-500/25',
+    spot: 'rgba(217,70,239,0.18)',
   },
   {
     slug: 'partners',
@@ -213,8 +255,11 @@ export const DIVISIONS: Division[] = [
     href: '/#partner-network',
     status: 'live',
     icon: Handshake,
-    iconBg: 'bg-gradient-to-br from-fuchsia-500 to-purple-600',
-    glow: 'group-hover:shadow-fuchsia-500/25',
-    spot: 'rgba(217,70,239,0.18)',
+    iconBg: 'bg-gradient-to-br from-purple-600 to-violet-800',
+    glow: 'group-hover:shadow-purple-500/25',
+    spot: 'rgba(147,51,234,0.18)',
   },
 ];
+
+/** The five businesses that have their own website (also the ones shown inline in the parent navbar). */
+export const PRIMARY_DIVISIONS = DIVISIONS.filter((d) => d.primary);

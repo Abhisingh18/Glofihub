@@ -6,6 +6,7 @@ import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
 import { FloatingContact } from '@/components/FloatingContact';
 import { DIVISIONS } from '@/lib/divisions';
+import { SITES } from '@/lib/sites';
 import { SITE } from '@/lib/site';
 
 // "Launching soon" pages for divisions that don't have their own site section yet.
@@ -13,12 +14,12 @@ import { SITE } from '@/lib/site';
 export const dynamicParams = false;
 
 export function generateStaticParams() {
-  return DIVISIONS.filter((d) => d.status === 'soon').map((d) => ({ division: d.slug }));
+  return DIVISIONS.filter((d) => d.status === 'soon' && !(d.slug in SITES)).map((d) => ({ division: d.slug }));
 }
 
 type Props = { params: Promise<{ division: string }> };
 
-const findSoon = (slug: string) => DIVISIONS.find((d) => d.slug === slug && d.status === 'soon');
+const findSoon = (slug: string) => DIVISIONS.find((d) => d.slug === slug && d.status === 'soon' && !(d.slug in SITES));
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { division } = await params;
