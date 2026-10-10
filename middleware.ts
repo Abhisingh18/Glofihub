@@ -55,8 +55,8 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(u);
     }
   } else if (isPublicProd) {
-    // Public glofihub.com: staff areas live on the admin subdomain.
-    if (path.startsWith('/admin') || path.startsWith('/counsellor')) {
+    // Public glofihub.com: staff areas (and the admin portal's sign-in page) live on the admin subdomain.
+    if (path.startsWith('/admin') || path.startsWith('/counsellor') || path === '/counselling/admin') {
       return NextResponse.redirect(`${url.protocol}//admin.${mainHost}/login`);
     }
   }
@@ -64,7 +64,9 @@ export async function middleware(request: NextRequest) {
   // ── Auth gate ──
   if (!session && isProtected) {
     const u = url.clone();
-    u.pathname = '/login';
+    // The admin area has its own sign-in inside the counselling site; on the dedicated admin host
+    // the shared /login page (which has an Admin tab) is used instead.
+    u.pathname = !isAdminHost && path.startsWith('/admin') ? '/counselling/admin' : '/login';
     u.searchParams.set('redirect', path);
     return NextResponse.redirect(u);
   }
